@@ -15,3 +15,4 @@
 - 2026-07-16: Introduced placeholder values <security-email> and <conduct-email>; CODEOWNERS teams are documented placeholders that must exist in josunefoOrg.
 - 2026-07-16: Standards used: MIT License, Contributor Covenant v2.1, Conventional Commits, GitHub issue forms, GitHub CODEOWNERS, and the locked branch protection baseline with checks test, build, analyze, and gitleaks.
 - 2026-07-16: **Phase 1 complete:** Delivered community standards and governance framework for a professional template repository.
+- 2026-07-16: Documented the required `repo-provisioning` GitHub Environment approval gate and org Actions credentials for the self-service provisioning workflow.

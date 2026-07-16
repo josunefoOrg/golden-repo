@@ -44,6 +44,36 @@ New repositories are provisioned through:
 
 The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below.
 
+## Required environment configuration
+
+The self-service workflow `.github/workflows/provision-new-repo.yml` uses `environment: repo-provisioning` as a manual approval gate before privileged repository provisioning runs. Provisioning is therefore not fully unattended.
+
+IMPORTANT: Create the GitHub Environment and its required reviewers manually in the GitHub UI. Environment protection rules and required reviewers CANNOT be created via API/script and must be configured manually before provisioning is treated as ready.
+
+Create the environment in the repository that hosts the workflow:
+
+1. Open repository or organization settings for `josunefoOrg/golden-repo`.
+2. Go to `Settings` -> `Environments`.
+3. Select `New environment`.
+4. Name it `repo-provisioning`.
+5. Enable `Required reviewers`.
+6. Add the approver team or users, preferably `maintainers` or `platform-team`.
+7. Save the protection rules.
+
+The workflow also needs these organization-level Actions credentials from the provisioning GitHub App:
+
+- Variable: `PROVISIONER_APP_ID`
+- Secret: `PROVISIONER_APP_PRIVATE_KEY`
+
+Set them with `gh`:
+
+```bash
+gh variable set PROVISIONER_APP_ID --org josunefoOrg --body "<app-id>"
+gh secret set PROVISIONER_APP_PRIVATE_KEY --org josunefoOrg < path/to/private-key.pem
+```
+
+Visibility flags may be required by org policy, for example `--visibility all` or selected repository access. See [docs/SETUP.md](docs/SETUP.md) for the full one-time GitHub App registration and installation steps.
+
 ## Branch protection baseline
 
 The `main` branch must use this baseline:
