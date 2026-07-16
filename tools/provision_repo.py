@@ -53,7 +53,11 @@ class Summary:
 
     repo_url: str = ""
     visibility: str = ""
+    teams_created: list[str] = field(default_factory=list)
+    teams_reused: list[str] = field(default_factory=list)
     teams_granted: list[str] = field(default_factory=list)
+    team_members_added: list[str] = field(default_factory=list)
+    team_member_warnings: list[str] = field(default_factory=list)
     branch_protection_applied: bool = False
     security_features_enabled: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
@@ -168,11 +172,35 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--team",
         action="append",
-        required=True,
+        default=[],
         help=(
             "Team slug to grant. Repeat for multiple teams. Slugs containing "
             "'maintain' receive maintain; all others receive push."
         ),
+    )
+    parser.add_argument(
+        "--new-team",
+        help=(
+            "Dedicated team slug to create/reuse for this repo. Default: "
+            "<name>-admins, sanitized to lowercase hyphenated slug."
+        ),
+    )
+    parser.add_argument(
+        "--new-team-permission",
+        choices=("pull", "push", "maintain", "admin"),
+        default="maintain",
+        help="Repository permission for --new-team. Default: maintain.",
+    )
+    parser.add_argument(
+        "--new-team-member",
+        action="append",
+        default=[],
+        help="Org member login to add to --new-team. Repeat for multiple members.",
+    )
+    parser.add_argument(
+        "--no-new-team",
+        action="store_true",
+        help="Opt out of creating the dedicated repo team; --team grants still apply.",
     )
     parser.add_argument("--description", default="", help="Repository description.")
     parser.add_argument(
@@ -220,10 +248,18 @@ def validate_args(args: argparse.Namespace) -> None:
     validate_slug(args.org, "--org")
     validate_slug(args.template_owner, "--template-owner")
     validate_repo_name(args.template_repo, "--template-repo")
-    if not args.team:
-        raise ProvisioningError("At least one --team value is required.")
+    if args.no_new_team and not args.team:
+        raise ProvisioningError("At least one --team value is required with --no-new-team.")
+    if not args.no_new_team:
+        args.new_team = (
+            validate_new_team_slug(args.new_team, "--new-team")
+            if args.new_team
+            else sanitize_team_slug(f"{args.name}-admins")
+        )
     for team_slug in args.team:
         validate_slug(team_slug, "--team")
+    for member_login in args.new_team_member:
+        validate_slug(member_login, "--new-team-member")
     for topic in args.topics_list:
         if not TOPIC_RE.fullmatch(topic):
             raise ProvisioningError(
@@ -251,6 +287,24 @@ def validate_slug(value: str, flag: str) -> None:
             f"Invalid {flag} '{value}'. Use a GitHub slug with letters, numbers, "
             "and hyphens."
         )
+
+
+def validate_new_team_slug(value: str, flag: str) -> str:
+    validate_slug(value, flag)
+    return value.lower()
+
+
+def sanitize_team_slug(value: str) -> str:
+    slug = value.strip().lower()
+    slug = re.sub(r"[\s_]+", "-", slug)
+    slug = re.sub(r"[^a-z0-9-]+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    if not slug:
+        raise ProvisioningError(
+            "Could not derive a valid --new-team slug from --name; pass --new-team."
+        )
+    validate_slug(slug, "--new-team")
+    return slug
 
 
 def progress(message: str) -> None:
@@ -367,10 +421,18 @@ def select_branch_restriction_teams(team_slugs: list[str]) -> list[str]:
     if maintainers:
         return maintainers
     print(
-        "No maintainers-like team slug supplied; using the first --team value "
+        "No maintainers-like team slug supplied; using the first granted team "
         "for main-branch push restrictions."
     )
     return [team_slugs[0]]
+
+
+def branch_restriction_team_candidates(args: argparse.Namespace) -> list[str]:
+    candidates: list[str] = []
+    if not args.no_new_team:
+        candidates.append(args.new_team)
+    candidates.extend(args.team)
+    return list(dict.fromkeys(candidates))
 
 
 def apply_branch_protection(
@@ -379,7 +441,9 @@ def apply_branch_protection(
     summary: Summary,
 ) -> None:
     wait_for_main_branch(client, args.org, args.name)
-    restricted_teams = select_branch_restriction_teams(args.team)
+    restricted_teams = select_branch_restriction_teams(
+        branch_restriction_team_candidates(args)
+    )
     progress(
         "Applying branch protection to main "
         f"(restricted teams: {', '.join(restricted_teams)})"
@@ -471,21 +535,113 @@ def enable_security_features(
     summary.security_features_enabled.append("CodeQL default setup")
 
 
-def grant_team_access(
+def ensure_team_exists(
+    client: GitHubClient,
+    org: str,
+    team_slug: str,
+    summary: Summary,
+) -> None:
+    progress(f"Ensuring team {team_slug} exists")
+    if client.dry_run:
+        client.request_allowing_statuses(
+            "GET",
+            f"/orgs/{org}/teams/{team_slug}",
+            allowed=(200, 404),
+        )
+        client.request(
+            "POST",
+            f"/orgs/{org}/teams",
+            body={"name": team_slug, "privacy": "closed"},
+            expected=(201,),
+        )
+        summary.teams_created.append(team_slug)
+        return
+
+    status, _ = client.request_allowing_statuses(
+        "GET",
+        f"/orgs/{org}/teams/{team_slug}",
+        allowed=(200, 404),
+    )
+    if status == 200:
+        summary.teams_reused.append(team_slug)
+        return
+    client.request(
+        "POST",
+        f"/orgs/{org}/teams",
+        body={"name": team_slug, "privacy": "closed"},
+        expected=(201,),
+    )
+    summary.teams_created.append(team_slug)
+
+
+def add_new_team_members(
     client: GitHubClient,
     args: argparse.Namespace,
     summary: Summary,
 ) -> None:
-    for team_slug in args.team:
-        permission = "maintain" if "maintain" in team_slug.lower() else "push"
-        progress(f"Granting team {team_slug} {permission} access")
-        client.request(
-            "PUT",
-            f"/orgs/{args.org}/teams/{team_slug}/repos/{args.org}/{args.name}",
-            body={"permission": permission},
-            expected=(204,),
+    for member_login in args.new_team_member:
+        progress(f"Adding {member_login} to team {args.new_team}")
+        try:
+            client.request(
+                "PUT",
+                f"/orgs/{args.org}/teams/{args.new_team}/memberships/{member_login}",
+                body={"role": "member"},
+                expected=(200, 201),
+            )
+            summary.team_members_added.append(f"{args.new_team}:{member_login}")
+        except (ApiError, requests.RequestException) as exc:
+            warning = (
+                f"Could not add {member_login} to {args.new_team}: {exc}"
+            )
+            print(f"WARNING: {warning}")
+            summary.team_member_warnings.append(warning)
+
+
+def grant_team_repo_access(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+    team_slug: str,
+    permission: str,
+) -> None:
+    progress(f"Granting team {team_slug} {permission} access")
+    client.request(
+        "PUT",
+        f"/orgs/{args.org}/teams/{team_slug}/repos/{args.org}/{args.name}",
+        body={"permission": permission},
+        expected=(204,),
+    )
+    summary.teams_granted.append(f"{team_slug}:{permission}")
+
+
+def provision_team_access(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+) -> None:
+    granted_team_slugs: set[str] = set()
+    if not args.no_new_team:
+        ensure_team_exists(client, args.org, args.new_team, summary)
+        add_new_team_members(client, args, summary)
+        grant_team_repo_access(
+            client,
+            args,
+            summary,
+            args.new_team,
+            args.new_team_permission,
         )
-        summary.teams_granted.append(f"{team_slug}:{permission}")
+        granted_team_slugs.add(args.new_team)
+
+    for team_slug in args.team:
+        if team_slug in granted_team_slugs:
+            summary.skipped.append(
+                f"team grant skipped: {team_slug} already granted as --new-team"
+            )
+            continue
+        ensure_team_exists(client, args.org, team_slug, summary)
+        permission = "maintain" if "maintain" in team_slug.lower() else "push"
+        grant_team_repo_access(client, args, summary, team_slug, permission)
+        granted_team_slugs.add(team_slug)
 
 
 def note_codeowners_override(args: argparse.Namespace, summary: Summary) -> None:
@@ -502,7 +658,11 @@ def print_summary(summary: Summary) -> None:
         {
             "repo_url": summary.repo_url,
             "visibility": summary.visibility,
+            "teams_created": summary.teams_created,
+            "teams_reused": summary.teams_reused,
             "teams_granted": summary.teams_granted,
+            "team_members_added": summary.team_members_added,
+            "team_member_warnings": summary.team_member_warnings,
             "branch_protection": {
                 "applied": summary.branch_protection_applied,
                 "required_checks": REQUIRED_CHECKS,
@@ -536,7 +696,7 @@ def main(argv: list[str] | None = None) -> int:
 
         create_or_get_repo(client, args, summary)
         update_repo_settings(client, args)
-        grant_team_access(client, args, summary)
+        provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)
         enable_security_features(client, args, summary)
         note_codeowners_override(args, summary)
