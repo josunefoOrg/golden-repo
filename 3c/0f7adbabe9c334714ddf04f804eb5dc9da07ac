@@ -1,0 +1,43 @@
+tests/README.md
+  s_3cdb91801b2188::t_2574968801168e 1-13
+.github/agents/risk-security-advisor.md
+  s_3cdb91801b2188::t_5ebdf224fde47b 1-185
+tests/test_smoke.py
+  s_3cdb91801b2188::t_5578115be5ae9d 1-9
+README.md
+  s_90d7000bbcf5b2::t_449239583feea8 95-100,103-114
+docs/architecture.md
+  s_a48e8510d51995::t_c7bebaba503548 53,56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3c0f7adbabe9c334714ddf04f804eb5dc9da07ac",
+  "prompts": {},
+  "sessions": {
+    "s_3cdb91801b2188": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a4c9b192-89dd-4d12-ac97-21e6a15c9c4f",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_90d7000bbcf5b2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LDEvMc4c6pKcF4FZvnEcof",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_a48e8510d51995": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_013RTzQnvVwSD1gbmcR9Gkwb",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
