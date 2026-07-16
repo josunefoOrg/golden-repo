@@ -1,0 +1,53 @@
+name: Feature request
+description: Suggest an improvement to the template, tooling, or secure baseline.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for proposed improvements. Keep the request focused and describe the user or maintainer value.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem should this feature solve?
+      placeholder: Describe the gap, pain point, or use case.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe the change you want.
+      placeholder: Explain the expected behavior or implementation direction.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: List other approaches and why they are less suitable.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List concrete conditions that must be true when this is complete.
+      placeholder: |
+        - Given ..., when ..., then ...
+        - Documentation is updated.
+        - Required checks pass.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Request checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This request is template-generic and not specific to a private implementation.
+          required: true

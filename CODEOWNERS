@@ -1,0 +1,9 @@
+# These teams must exist in josunefoOrg before CODEOWNERS review enforcement is enabled.
+# Replace placeholder team names if generated repositories use different ownership.
+
+* @josunefoOrg/maintainers
+infra/ @josunefoOrg/infra-team
+src/ @josunefoOrg/dev-team
+tools/ @josunefoOrg/platform-team
+.github/ @josunefoOrg/platform-team
+.github/workflows/ @josunefoOrg/platform-team

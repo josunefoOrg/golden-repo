@@ -1,0 +1,134 @@
+# SLSA L3-aligned SBOM and signing workflow.
+# This fulfills the SLSA L3 SBOM+signing pattern used across sibling repos:
+# generate Syft SBOMs, sign them keylessly with Cosign/OIDC, and pair release
+# artifacts with provenance from slsa-framework/slsa-github-generator when a
+# concrete build workflow is added by a template consumer.
+name: SBOM and Signing
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing or new release tag to attach signed assets to when testing manually'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  packages: read
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    env:
+      SPDX_SBOM: sbom.spdx.json
+      CYCLONEDX_SBOM: sbom.cyclonedx.json
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate SPDX JSON SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ env.SPDX_SBOM }}
+          upload-artifact: false
+          dependency-snapshot: false
+
+      - name: Generate CycloneDX JSON SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: ${{ env.CYCLONEDX_SBOM }}
+          upload-artifact: false
+          dependency-snapshot: false
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Collect files to sign
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=("${SPDX_SBOM}" "${CYCLONEDX_SBOM}")
+          for dir in dist build; do
+            if [ -d "$dir" ]; then
+              while IFS= read -r -d '' file; do
+                files+=("$file")
+              done < <(find "$dir" -type f -print0)
+            fi
+          done
+          printf '%s\n' "${files[@]}" | sort -u > files-to-sign.txt
+          cat files-to-sign.txt
+
+      - name: Keyless sign SBOMs and artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            cosign sign-blob --yes \
+              --output-signature "${file}.sig" \
+              --output-certificate "${file}.pem" \
+              "$file"
+          done < files-to-sign.txt
+
+      - name: Note provenance generator alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat <<'NOTE'
+          SLSA L3 provenance alignment: template consumers should add
+          slsa-framework/slsa-github-generator to the build workflow that
+          creates release artifacts, then this workflow signs and publishes
+          SBOMs plus artifact signatures with keyless OIDC credentials.
+          NOTE
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          tag="${RELEASE_TAG:-}"
+          if [ -z "$tag" ] && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+          fi
+          if [ -z "$tag" ]; then
+            tag="${INPUT_RELEASE_TAG:-}"
+          fi
+          if [ -z "$tag" ]; then
+            echo "workflow_dispatch requires release_tag unless run from a tag." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Upload signed assets to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" --verify-tag --title "$TAG_NAME" --notes "Signed SBOM and artifact assets."
+          fi
+          assets=(files-to-sign.txt)
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            assets+=("$file" "${file}.sig" "${file}.pem")
+          done < files-to-sign.txt
+          gh release upload "$TAG_NAME" "${assets[@]}" --clobber

@@ -1,0 +1,109 @@
+# MANUAL ONE-TIME SETUP:
+# 1. Register an org GitHub App for josunefoOrg with repository permissions:
+#    Administration RW, Contents RW, Metadata R, Actions RW, Code scanning alerts RW,
+#    Secret scanning alerts RW, Dependabot alerts RW, and Members R.
+# 2. Install the GitHub App on the josunefoOrg organization.
+# 3. Add org secret PROVISIONER_APP_PRIVATE_KEY and org variable PROVISIONER_APP_ID.
+# 4. Create the repo-provisioning environment with required reviewers. Environment
+#    approval gates cannot be fully scripted and must be configured manually.
+
+name: Provision New Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: Name of the repository to create or update.
+        required: true
+        type: string
+      visibility:
+        description: Repository visibility.
+        required: true
+        default: private
+        type: choice
+        options:
+          - private
+          - internal
+          - public
+      team:
+        description: Team slug to grant access, for example platform-team.
+        required: true
+        type: string
+      description:
+        description: Repository description.
+        required: false
+        type: string
+      topics:
+        description: Comma-separated repository topics.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provision-new-repo-${{ inputs.repo_name }}
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: provision
+    runs-on: ubuntu-latest
+    environment: repo-provisioning
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.PROVISIONER_APP_ID }}
+          private-key: ${{ secrets.PROVISIONER_APP_PRIVATE_KEY }}
+          owner: josunefoOrg
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install provisioning dependencies
+        run: python -m pip install -r tools/requirements.txt
+
+      - name: Provision repository
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          INPUT_REPO_NAME: ${{ inputs.repo_name }}
+          INPUT_VISIBILITY: ${{ inputs.visibility }}
+          INPUT_TEAM: ${{ inputs.team }}
+          INPUT_DESCRIPTION: ${{ inputs.description }}
+          INPUT_TOPICS: ${{ inputs.topics }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --name "$INPUT_REPO_NAME"
+            --org "josunefoOrg"
+            --visibility "$INPUT_VISIBILITY"
+            --team "$INPUT_TEAM"
+          )
+
+          if [ -n "$INPUT_DESCRIPTION" ]; then
+            args+=(--description "$INPUT_DESCRIPTION")
+          fi
+
+          if [ -n "$INPUT_TOPICS" ]; then
+            args+=(--topics "$INPUT_TOPICS")
+          fi
+
+          python tools/provision_repo.py "${args[@]}"
+
+      - name: Write repository URL to summary
+        env:
+          INPUT_REPO_NAME: ${{ inputs.repo_name }}
+        run: |
+          echo "## Provisioned repository" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/josunefoOrg/$INPUT_REPO_NAME" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f tools/requirements.txt ]; then
+            python -m pip install -r tools/requirements.txt
+          fi
+
+      - name: Run Python linters when configured
+        run: |
+          set -euo pipefail
+
+          has_ruff_config=false
+          if [ -f ruff.toml ] || [ -f .ruff.toml ]; then
+            has_ruff_config=true
+          elif [ -f pyproject.toml ] && grep -q '^\[tool\.ruff' pyproject.toml; then
+            has_ruff_config=true
+          fi
+
+          if [ "$has_ruff_config" = "true" ]; then
+            if ! command -v ruff >/dev/null 2>&1; then
+              python -m pip install ruff
+            fi
+            ruff check .
+          else
+            echo "No ruff configuration found; skipping ruff."
+          fi
+
+          has_flake8_config=false
+          if [ -f .flake8 ]; then
+            has_flake8_config=true
+          elif [ -f setup.cfg ] && grep -q '^\[flake8\]' setup.cfg; then
+            has_flake8_config=true
+          elif [ -f tox.ini ] && grep -q '^\[flake8\]' tox.ini; then
+            has_flake8_config=true
+          fi
+
+          if [ "$has_flake8_config" = "true" ]; then
+            if ! command -v flake8 >/dev/null 2>&1; then
+              python -m pip install flake8
+            fi
+            flake8 .
+          else
+            echo "No flake8 configuration found; skipping flake8."
+          fi
+
+      - name: Lint GitHub Actions when actionlint is available
+        run: |
+          if command -v actionlint >/dev/null 2>&1; then
+            actionlint
+          else
+            echo "actionlint is not installed on this runner; skipping."
+          fi
+
+      - name: Run tests when present
+        run: |
+          set -euo pipefail
+          if find . -path ./.git -prune -o \( -path './tests' -o -name 'test_*.py' -o -name '*_test.py' \) -print -quit | grep -q .; then
+            if ! python -c "import pytest" >/dev/null 2>&1; then
+              python -m pip install pytest
+            fi
+            pytest
+          else
+            echo "No Python tests found; skipping pytest."
+          fi
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile Python tooling
+        run: |
+          set -euo pipefail
+          if find tools -maxdepth 1 -type f -name '*.py' -print -quit 2>/dev/null | grep -q .; then
+            python -m py_compile tools/*.py
+          else
+            echo "No Python files found in tools; skipping py_compile."
+          fi
+
+      - name: Build Docker image when Dockerfile exists
+        run: |
+          if [ -f Dockerfile ]; then
+            docker build -f Dockerfile .
+          else
+            echo "No Dockerfile found; skipping docker build."
+          fi

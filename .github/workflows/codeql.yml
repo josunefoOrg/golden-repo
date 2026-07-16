@@ -1,0 +1,71 @@
+# CodeQL advanced setup for golden-repo template consumers.
+# Fail-closed by default: supported languages are analyzed when present; absent template languages are skipped cleanly.
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '23 3 * * 1'
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            codeql-language: python
+            patterns: "**/*.py"
+          - language: javascript
+            codeql-language: javascript-typescript
+            patterns: "**/*.js **/*.jsx **/*.ts **/*.tsx **/package.json"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect language files
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          found=false
+          for pattern in ${{ matrix.patterns }}; do
+            matches=( $pattern )
+            if [ ${#matches[@]} -gt 0 ]; then
+              found=true
+              break
+            fi
+          done
+          echo "present=${found}" >> "$GITHUB_OUTPUT"
+          if [ "$found" != "true" ]; then
+            echo "No ${{ matrix.language }} source files found; skipping CodeQL for this matrix entry."
+          fi
+
+      - name: Initialize CodeQL
+        if: steps.detect.outputs.present == 'true'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.codeql-language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        if: steps.detect.outputs.present == 'true'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        if: steps.detect.outputs.present == 'true'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
