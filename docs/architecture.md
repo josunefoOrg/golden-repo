@@ -50,8 +50,10 @@ The template repository is `josunefoOrg/golden-repo`. New repositories inherit t
 
 - `src/` for application source placeholders.
 - `infra/` for infrastructure-as-code placeholders.
+- `tests/` for the test suite; the CI `test` job runs `pytest` here and is a required status check.
 - `docs/` for architecture, setup, branch-protection, and operational docs.
 - `.github/` for workflows, CODEOWNERS, issue configuration, and security automation.
+- `.github/agents/` for optional Copilot custom agents (for example the included `risk-security-advisor`, plus optional IaC and security agents) that ship with generated repos.
 - Standard CI/security check names:
   - `test`
   - `build`

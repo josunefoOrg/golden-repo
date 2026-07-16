@@ -92,11 +92,25 @@ The `main` branch must use this baseline:
 ## Repository layout
 
 ```text
-infra/   Infrastructure definitions and deployment assets.
-src/     Application and agent source code.
-docs/    Architecture, operations, and security documentation.
-tools/   Provisioning and repository automation scripts.
+infra/           Infrastructure definitions and deployment assets.
+src/             Application and agent source code.
+docs/            Architecture, operations, and security documentation.
+tests/           Test suite; runs in CI via pytest (the required `test` status check).
+tools/           Provisioning and repository automation scripts.
+.github/agents/  Optional Copilot custom agents shipped with generated repos.
 ```
+
+## Optional Copilot agents
+
+This template can ship reusable Copilot custom agents under `.github/agents/` so every repository generated from it starts with domain expertise built in. Agents are Markdown files with a YAML front matter header (`name`, `description`, `tools`, `model`) followed by the agent instructions.
+
+Recommended agents to support new agent/security-tooling projects:
+
+- **IaC agent** - reviews and authors infrastructure-as-code in `infra/` (Bicep/Terraform), enforces tagging, network, and least-privilege conventions.
+- **Security agent** - reviews changes for security issues, validates the security baseline (secret scanning, CodeQL, signed commits), and flags risky patterns.
+- **AI Risk & Security Advisor** (`.github/agents/risk-security-advisor.md`) - included in this template. Advises on risk tier classification, Zero Trust architecture, threat detection, incident response, and compliance for enterprise AI agents on Microsoft Foundry.
+
+To add another agent, drop a new `.github/agents/<name>.md` file following the same front matter format. To remove one, delete its file. Agents are inert until invoked, so they add no runtime cost to a generated repo.
 
 ## License
 
