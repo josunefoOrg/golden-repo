@@ -533,16 +533,12 @@ def enable_security_features(
         ["secret scanning", "secret scanning push protection"]
     )
 
-    # CodeQL default setup for private/internal repositories may require GitHub
-    # Advanced Security and code scanning permissions.
-    progress("Configuring CodeQL default setup")
-    client.request(
-        "PATCH",
-        f"/repos/{args.org}/{args.name}/code-scanning/default-setup",
-        body={"state": "configured"},
-        expected=(200, 201, 202, 204),
-    )
-    summary.security_features_enabled.append("CodeQL default setup")
+    # CodeQL analysis is provided by the advanced workflow shipped in the
+    # template (.github/workflows/codeql.yml), which produces the required
+    # "analyze" status check. Enabling CodeQL *default setup* here would
+    # conflict with that workflow ("configuration error"), so it is
+    # intentionally left to the workflow instead.
+    summary.security_features_enabled.append("CodeQL analysis (advanced workflow)")
 
 
 def ensure_team_exists(
