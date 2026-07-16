@@ -1,0 +1,19 @@
+.gitignore
+  s_3cdb91801b2188::t_8a3d245917d775 1-2,4-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "4177238224d36bc10add15ad59252e94891a475f",
+  "prompts": {},
+  "sessions": {
+    "s_3cdb91801b2188": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a4c9b192-89dd-4d12-ac97-21e6a15c9c4f",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
