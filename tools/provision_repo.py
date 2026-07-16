@@ -325,7 +325,6 @@ def create_or_get_repo(
         "name": args.name,
         "description": args.description,
         "private": args.visibility != "public",
-        "visibility": args.visibility,
         "include_all_branches": False,
     }
     status, payload = client.request_allowing_statuses(
@@ -394,25 +393,35 @@ def update_repo_settings(client: GitHubClient, args: argparse.Namespace) -> None
     )
 
 
-def wait_for_main_branch(client: GitHubClient, org: str, repo: str) -> None:
-    progress("Waiting for main branch to be available")
+def get_default_branch(client: GitHubClient, org: str, repo: str) -> str:
     if client.dry_run:
-        client.request("GET", f"/repos/{org}/{repo}/branches/main")
+        return "main"
+    response = client.request("GET", f"/repos/{org}/{repo}")
+    data = response.json() if response is not None else {}
+    return str(data.get("default_branch") or "main")
+
+
+def wait_for_main_branch(
+    client: GitHubClient, org: str, repo: str, branch: str
+) -> None:
+    progress(f"Waiting for {branch} branch to be available")
+    if client.dry_run:
+        client.request("GET", f"/repos/{org}/{repo}/branches/{branch}")
         return
 
     for attempt in range(1, 11):
         status, _ = client.request_allowing_statuses(
             "GET",
-            f"/repos/{org}/{repo}/branches/main",
+            f"/repos/{org}/{repo}/branches/{branch}",
             allowed=(200, 404),
         )
         if status == 200:
             return
         if attempt < 10:
-            print(f"main branch not ready yet; retrying ({attempt}/10)")
+            print(f"{branch} branch not ready yet; retrying ({attempt}/10)")
             time.sleep(2)
     raise ProvisioningError(
-        f"Branch 'main' did not appear for {org}/{repo} after waiting."
+        f"Branch '{branch}' did not appear for {org}/{repo} after waiting."
     )
 
 
@@ -440,12 +449,13 @@ def apply_branch_protection(
     args: argparse.Namespace,
     summary: Summary,
 ) -> None:
-    wait_for_main_branch(client, args.org, args.name)
+    branch = get_default_branch(client, args.org, args.name)
+    wait_for_main_branch(client, args.org, args.name, branch)
     restricted_teams = select_branch_restriction_teams(
         branch_restriction_team_candidates(args)
     )
     progress(
-        "Applying branch protection to main "
+        f"Applying branch protection to {branch} "
         f"(restricted teams: {', '.join(restricted_teams)})"
     )
     body = {
@@ -469,15 +479,15 @@ def apply_branch_protection(
     }
     client.request(
         "PUT",
-        f"/repos/{args.org}/{args.name}/branches/main/protection",
+        f"/repos/{args.org}/{args.name}/branches/{branch}/protection",
         body=body,
         expected=(200,),
     )
 
-    progress("Requiring signed commits on main")
+    progress(f"Requiring signed commits on {branch}")
     client.request(
         "POST",
-        f"/repos/{args.org}/{args.name}/branches/main/protection/required_signatures",
+        f"/repos/{args.org}/{args.name}/branches/{branch}/protection/required_signatures",
         expected=(200, 204),
         accept="application/vnd.github.zzzax-preview+json",
     )
