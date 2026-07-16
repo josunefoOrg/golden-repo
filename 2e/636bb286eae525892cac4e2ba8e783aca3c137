@@ -1,0 +1,28 @@
+.github/dependabot.yml
+  s_3cdb91801b2188::t_569bc6041a65a2 31-32
+  s_90d7000bbcf5b2::t_c2b3ceb42cdd1c 33-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "2e636bb286eae525892cac4e2ba8e783aca3c137",
+  "prompts": {},
+  "sessions": {
+    "s_3cdb91801b2188": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a4c9b192-89dd-4d12-ac97-21e6a15c9c4f",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_90d7000bbcf5b2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LDEvMc4c6pKcF4FZvnEcof",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
