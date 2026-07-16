@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Detect language files
         id: detect
@@ -54,18 +54,18 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.detect.outputs.present == 'true'
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.codeql-language }}
           queries: security-extended,security-and-quality
 
       - name: Autobuild
         if: steps.detect.outputs.present == 'true'
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.present == 'true'
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
 
