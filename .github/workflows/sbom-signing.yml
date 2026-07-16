@@ -54,7 +54,7 @@ jobs:
           dependency-snapshot: false
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4
 
       - name: Collect files to sign
         id: collect
