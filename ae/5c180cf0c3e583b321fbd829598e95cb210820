@@ -1,0 +1,21 @@
+.squad/agents/lambert/history.md
+  s_e5300b37ed7e3e::t_62fec8440509cf 18
+README.md
+  s_e5300b37ed7e3e::t_8dc55d8f863e46 47-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ae5c180cf0c3e583b321fbd829598e95cb210820",
+  "prompts": {},
+  "sessions": {
+    "s_e5300b37ed7e3e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01RvEp5arD5VqidR6Pwbt2ZA",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
