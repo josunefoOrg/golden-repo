@@ -28,30 +28,35 @@ updates:
           - minor
           - patch
 
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-    groups:
-      npm-minor-patch:
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-    groups:
-      docker-minor-patch:
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
+  # Enable the ecosystems below once the corresponding manifests exist in a
+  # repository generated from this template. Leaving them enabled without a
+  # manifest (e.g. package.json / Dockerfile) causes Dependabot update jobs to
+  # fail, so they ship commented-out by default.
+  #
+  # - package-ecosystem: npm
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #   labels:
+  #     - dependencies
+  #   groups:
+  #     npm-minor-patch:
+  #       patterns:
+  #         - '*'
+  #       update-types:
+  #         - minor
+  #         - patch
+  #
+  # - package-ecosystem: docker
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #   labels:
+  #     - dependencies
+  #   groups:
+  #     docker-minor-patch:
+  #       patterns:
+  #         - '*'
+  #       update-types:
+  #         - minor
+  #         - patch
