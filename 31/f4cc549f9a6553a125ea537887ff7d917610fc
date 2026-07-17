@@ -1,0 +1,48 @@
+.github/workflows/framework-compliance-review.yml
+  s_b83a17a7f1a771::t_f82e4b23e86f1d 1-57,59,61-110,112-138,140-202
+  s_286ed67ac632eb::t_370e9de665d2d6 58,60,111,139
+README.md
+  s_90d7000bbcf5b2::t_692a9b120659fe 106-109,130
+docs/SETUP.md
+  s_a48e8510d51995::t_64eac4b0b23ada 317-355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "31f4cc549f9a6553a125ea537887ff7d917610fc",
+  "prompts": {},
+  "sessions": {
+    "s_286ed67ac632eb": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01SRYUkHfs5izUZyZqxXgzjz",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_90d7000bbcf5b2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LDEvMc4c6pKcF4FZvnEcof",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_a48e8510d51995": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_013RTzQnvVwSD1gbmcR9Gkwb",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_b83a17a7f1a771": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01F6c2WFmv34yi8RxSJNhzFe",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
