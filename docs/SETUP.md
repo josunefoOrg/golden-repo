@@ -324,7 +324,7 @@ Prerequisite: a GitHub Copilot seat or subscription for the account whose token 
 
 Set the secret once at the organization level (Settings > Secrets and variables > Actions > New organization secret) and every provisioned repo will inherit it. This avoids per-repo setup.
 
-Create a fine-grained personal access token (PAT) from a Copilot-enabled account. The token needs minimal scope: it only authenticates Copilot and does not require repo write access because the workflow uses the built-in `GITHUB_TOKEN` for PR comments and labels.
+Create a fine-grained personal access token (PAT) from a Copilot-enabled account. It MUST be a fine-grained token (prefix `github_pat_`). Classic PATs (prefix `ghp_`) are NOT supported by the Copilot CLI and fail with "Classic Personal Access Tokens (ghp_) are not supported by Copilot." The token needs minimal scope: it only authenticates Copilot and does not require repo write access because the workflow uses the built-in `GITHUB_TOKEN` for PR comments and labels.
 
 Store the secret at the organization level with visibility applied to all repos or selected repos:
 
