@@ -40,7 +40,7 @@ UI path:
    - Secret scanning alerts: Read and write.
    - Dependabot alerts: Read and write.
 7. Set organization permissions:
-   - Members: Read-only.
+   - Members: Read and write. (Read and write is required so provisioning can create the per-repo admin team; read-only causes a 403 on team creation.)
 8. Subscribe to no webhooks.
 9. Select `Create GitHub App`.
 10. Record the App ID.
@@ -55,7 +55,7 @@ Actions: Read and write
 Code scanning alerts: Read and write
 Secret scanning alerts: Read and write
 Dependabot alerts: Read and write
-Members: Read-only
+Members: Read and write
 Webhooks: none
 ```
 

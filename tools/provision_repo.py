@@ -377,6 +377,64 @@ def is_repo_already_exists(payload: dict[str, Any] | str | None) -> bool:
     )
 
 
+def wait_for_template_ready(
+    client: GitHubClient,
+    args: argparse.Namespace,
+) -> None:
+    """Wait for GitHub's async template population to complete.
+    
+    GitHub's template generation (POST /repos/.../generate) returns 201 immediately
+    but populates files asynchronously with an "Initial commit" a few seconds later.
+    Poll until the repository has commits AND the HEAD sha is stable across two
+    consecutive polls (indicating the Initial commit has landed and no further
+    template commits are pending).
+    """
+    progress("Waiting for template population to complete")
+    
+    if client.dry_run:
+        progress("Dry-run: skipping template-ready poll")
+        return
+    
+    max_attempts = 30  # 30 attempts * 2s = 60s timeout
+    poll_interval = 2  # seconds
+    previous_sha: str | None = None
+    
+    for attempt in range(1, max_attempts + 1):
+        status, payload = client.request_allowing_statuses(
+            "GET",
+            f"/repos/{args.org}/{args.name}/commits?per_page=1",
+            allowed=(200, 404, 409),
+        )
+        
+        # 404/409 means repo is empty (template not populated yet)
+        if status in (404, 409):
+            if attempt < max_attempts:
+                time.sleep(poll_interval)
+                continue
+            raise ProvisioningError(
+                f"Template population did not complete after {max_attempts * poll_interval}s. "
+                f"Repository {args.org}/{args.name} is still empty."
+            )
+        
+        # Extract HEAD commit sha
+        if status == 200 and isinstance(payload, list) and len(payload) > 0:
+            current_sha = payload[0].get("sha")
+            if current_sha:
+                if previous_sha == current_sha:
+                    # Stable HEAD across two consecutive polls - template is ready
+                    progress(f"Template population complete (HEAD stable at {current_sha[:7]})")
+                    return
+                previous_sha = current_sha
+        
+        if attempt < max_attempts:
+            time.sleep(poll_interval)
+    
+    raise ProvisioningError(
+        f"Template population did not stabilize after {max_attempts * poll_interval}s. "
+        f"Repository {args.org}/{args.name} HEAD commit is still changing."
+    )
+
+
 def replace_readme_with_placeholder(
     client: GitHubClient,
     args: argparse.Namespace,
@@ -762,6 +820,7 @@ def main(argv: list[str] | None = None) -> int:
         client = GitHubClient(token=token, dry_run=args.dry_run)
 
         create_or_get_repo(client, args, summary)
+        wait_for_template_ready(client, args)
         replace_readme_with_placeholder(client, args, summary)
         update_repo_settings(client, args)
         provision_team_access(client, args, summary)

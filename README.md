@@ -74,6 +74,20 @@ gh secret set PROVISIONER_APP_PRIVATE_KEY --org josunefoOrg < path/to/private-ke
 
 Visibility flags may be required by org policy, for example `--visibility all` or selected repository access. See [docs/SETUP.md](docs/SETUP.md) for the full one-time GitHub App registration and installation steps.
 
+### Approving a provisioning run
+
+When the self-service workflow is dispatched, the provision job pauses at the `repo-provisioning` environment and requests reviewer approval. An authorized reviewer (member of `maintainers` or `platform-team`) opens the workflow run, clicks "Review deployments", and approves the deployment to release the provisioning job.
+
+![Workflow run page showing provision job waiting for deployment approval with a Review deployments button](docs/images/approval/approval-01-waiting-review.png)
+
+*The provision job is paused and requesting review to deploy to repo-provisioning.*
+
+The approval dialog appears with the environment name, required reviewer team, and options to reject or approve the deployment:
+
+![Review pending deployments dialog with repo-provisioning environment, required reviewers field, comment box, and Approve and deploy button](docs/images/approval/approval-02-review-dialog.png)
+
+*The reviewer approves the deployment to release the provisioning job.*
+
 ## Branch protection baseline
 
 The `main` branch must use this baseline:

@@ -13,6 +13,129 @@ sys.path.insert(0, str(tools_dir))
 import provision_repo
 
 
+class TestTemplateReadyWait:
+    """Test that wait_for_template_ready handles async template population."""
+
+    def test_wait_template_dry_run(self):
+        """Test that dry-run skips polling."""
+        client = MagicMock()
+        client.dry_run = True
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        # Should not raise, should not call request
+        provision_repo.wait_for_template_ready(client, args)
+        
+        assert client.request_allowing_statuses.call_count == 0
+
+    def test_wait_template_empty_then_stable(self):
+        """Test polling: empty repo (404), then stable HEAD across two polls."""
+        client = MagicMock()
+        client.dry_run = False
+        
+        # First call: 404 (repo empty)
+        # Second call: 200 with commit sha abc123
+        # Third call: 200 with same sha abc123 (stable)
+        client.request_allowing_statuses.side_effect = [
+            (404, None),
+            (200, [{"sha": "abc123def"}]),
+            (200, [{"sha": "abc123def"}]),
+        ]
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        with patch("provision_repo.time.sleep"):  # Skip actual sleep
+            provision_repo.wait_for_template_ready(client, args)
+        
+        # Should have made 3 calls
+        assert client.request_allowing_statuses.call_count == 3
+
+    def test_wait_template_409_then_stable(self):
+        """Test polling: 409 (empty repo), then stable HEAD."""
+        client = MagicMock()
+        client.dry_run = False
+        
+        # First call: 409 (repo empty)
+        # Second call: 200 with commit
+        # Third call: 200 with same commit (stable)
+        client.request_allowing_statuses.side_effect = [
+            (409, {"message": "Git Repository is empty"}),
+            (200, [{"sha": "xyz789abc"}]),
+            (200, [{"sha": "xyz789abc"}]),
+        ]
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        with patch("provision_repo.time.sleep"):  # Skip actual sleep
+            provision_repo.wait_for_template_ready(client, args)
+        
+        assert client.request_allowing_statuses.call_count == 3
+
+    def test_wait_template_changing_head_then_stable(self):
+        """Test polling: HEAD changes, then stabilizes."""
+        client = MagicMock()
+        client.dry_run = False
+        
+        # Simulate HEAD changing then becoming stable
+        client.request_allowing_statuses.side_effect = [
+            (200, [{"sha": "commit1"}]),
+            (200, [{"sha": "commit2"}]),  # HEAD changed
+            (200, [{"sha": "commit2"}]),  # Now stable
+        ]
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        with patch("provision_repo.time.sleep"):  # Skip actual sleep
+            provision_repo.wait_for_template_ready(client, args)
+        
+        assert client.request_allowing_statuses.call_count == 3
+
+    def test_wait_template_timeout_empty(self):
+        """Test that timeout raises ProvisioningError when repo stays empty."""
+        client = MagicMock()
+        client.dry_run = False
+        
+        # Always return 404 (repo stays empty)
+        client.request_allowing_statuses.return_value = (404, None)
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        with patch("provision_repo.time.sleep"):  # Skip actual sleep
+            with pytest.raises(provision_repo.ProvisioningError, match="still empty"):
+                provision_repo.wait_for_template_ready(client, args)
+
+    def test_wait_template_timeout_unstable(self):
+        """Test that timeout raises ProvisioningError when HEAD keeps changing."""
+        client = MagicMock()
+        client.dry_run = False
+        
+        # Simulate HEAD constantly changing (never stable)
+        call_count = [0]
+        def changing_head(*args, **kwargs):
+            call_count[0] += 1
+            return (200, [{"sha": f"commit{call_count[0]}"}])
+        
+        client.request_allowing_statuses.side_effect = changing_head
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        with patch("provision_repo.time.sleep"):  # Skip actual sleep
+            with pytest.raises(provision_repo.ProvisioningError, match="still changing"):
+                provision_repo.wait_for_template_ready(client, args)
+
+
 class TestReadmePlaceholder:
     """Test that README.md is replaced with the placeholder template."""
 
