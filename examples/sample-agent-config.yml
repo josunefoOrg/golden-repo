@@ -1,0 +1,9 @@
+# Example agent configuration
+# Minimal sample for testing framework compliance
+
+agent:
+  name: example-agent
+  version: 1.0.0
+  capabilities:
+    - code-review
+    - documentation
