@@ -1,0 +1,202 @@
+# Framework Compliance Review Workflow
+#
+# This workflow automatically reviews pull requests using the custom Copilot agent
+# `framework-compliance-reviewer` defined in .github/agents/framework-compliance-reviewer.md
+#
+# REQUIREMENTS:
+# - Secret COPILOT_CLI_TOKEN must be configured (Personal Access Token from an account
+#   with a GitHub Copilot seat - GITHUB_TOKEN cannot authenticate Copilot CLI)
+# - This workflow consumes GitHub Copilot usage quota
+#
+# RUN-ONCE BEHAVIOR:
+# - The workflow adds a `compliance reviewed` label after successful review
+# - Subsequent runs on the same PR are skipped if the label is present
+# - To force a re-review: manually remove the `compliance reviewed` label from the PR
+#
+# OPTIONAL ENHANCEMENT:
+# - A maintainer could add a `synchronize` event handler to auto-remove the label
+#   on new pushes, triggering automatic re-review (not implemented here)
+
+name: Framework Compliance Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: compliance-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  compliance-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Guard - check if already reviewed
+        id: guard
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            if (labels.includes('compliance reviewed')) {
+              console.log('PR already has compliance reviewed label - skipping review');
+              core.setOutput('already', 'true');
+            } else {
+              console.log('No compliance reviewed label found - proceeding with review');
+              core.setOutput('already', 'false');
+            }
+
+      - name: Preflight - verify COPILOT_CLI_TOKEN is set
+        if: steps.guard.outputs.already != 'true'
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+        run: |
+          if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
+            echo "ERROR: COPILOT_CLI_TOKEN secret is not configured"
+            echo "The Copilot CLI requires a Personal Access Token from an account with a Copilot seat"
+            echo "GITHUB_TOKEN cannot be used to authenticate the Copilot CLI"
+            echo "Please configure the COPILOT_CLI_TOKEN secret in repository settings"
+            exit 1
+          fi
+          echo "COPILOT_CLI_TOKEN is configured"
+
+      - name: Checkout PR
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node.js
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install GitHub Copilot CLI
+        if: steps.guard.outputs.already != 'true'
+        run: npm install -g @github/copilot
+
+      - name: Ensure compliance reviewed label exists
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'compliance reviewed',
+                color: '0E8A16',
+                description: 'Framework compliance review completed'
+              });
+              console.log('Created compliance reviewed label');
+            } catch (error) {
+              if (error.status === 422) {
+                console.log('Label already exists');
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Run framework compliance review
+        if: steps.guard.outputs.already != 'true'
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          PROMPT='Review the changes in this pull request against the AI Agent Risk Management framework.
+
+          Pull Request Details:
+          - PR Number: '"$PR_NUMBER"'
+          - Base SHA: '"$BASE_SHA"'
+          - Head SHA: '"$HEAD_SHA"'
+
+          Instructions:
+          1. Inspect the diff between BASE_SHA and HEAD_SHA using git commands
+          2. Evaluate all changes against the framework requirements embedded in your instructions
+          3. Produce a concise Markdown compliance report with these sections:
+             - Summary: Brief overview of what was reviewed
+             - Findings: List each issue with:
+               * Severity: Critical/High/Medium/Low
+               * Evidence: Specific file:line references
+               * Remediation: Clear guidance on how to address
+             - Verdict: Overall assessment (PASS or CONCERNS)
+          4. If there are no in-scope changes for framework compliance, state that briefly
+          5. Write ONLY the final Markdown report to stdout (no additional commentary)
+
+          Your output will be posted as a PR comment.'
+
+          copilot --agent framework-compliance-reviewer --allow-all-tools -s --log-level error -p "$PROMPT" > review.md 2> copilot-err.log || {
+            echo "Copilot CLI failed:"
+            cat copilot-err.log
+            exit 1
+          }
+
+          echo "Review output:"
+          cat review.md
+
+          if [ ! -s review.md ]; then
+            echo "Framework compliance review completed - no output generated" > review.md
+          fi
+
+      - name: Post review as PR comment
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reviewContent = fs.readFileSync('review.md', 'utf8');
+            
+            const marker = '<!-- framework-compliance-review -->';
+            const heading = '## Framework Compliance Review';
+            const body = `${marker}\n${heading}\n\n${reviewContent}`;
+            
+            // Find existing comment with marker
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const existingComment = comments.find(c => c.body.includes(marker));
+            
+            if (existingComment) {
+              console.log(`Updating existing comment ${existingComment.id}`);
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              console.log('Creating new comment');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Add compliance reviewed label
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['compliance reviewed']
+            });
+            console.log('Added compliance reviewed label');

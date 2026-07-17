@@ -314,6 +314,45 @@ gh api `
 
 If these commands fail with a license or endpoint error, enable the feature in the UI and verify the org has GitHub Advanced Security for private repositories.
 
+## 9. Enable the framework compliance review workflow (optional)
+
+OPTIONAL STEP. This workflow runs the framework-compliance-reviewer Copilot agent on each pull request to review repository content and configuration against the AI Agent Risk Management framework, posts the compliance report as a PR comment, and adds a `compliance reviewed` label so the same PR is not re-reviewed. The workflow is included in every provisioned repo and inherited from the template. To enable it to run, store the GitHub Copilot CLI authentication token as an Actions secret named `COPILOT_CLI_TOKEN`.
+
+Prerequisite: a GitHub Copilot seat or subscription for the account whose token is used. The workflow runs the GitHub Copilot CLI headlessly, which requires authentication.
+
+### Recommended: Store the secret at organization level
+
+Set the secret once at the organization level (Settings > Secrets and variables > Actions > New organization secret) and every provisioned repo will inherit it. This avoids per-repo setup.
+
+Create a fine-grained personal access token (PAT) from a Copilot-enabled account. The token needs minimal scope: it only authenticates Copilot and does not require repo write access because the workflow uses the built-in `GITHUB_TOKEN` for PR comments and labels.
+
+Store the secret at the organization level with visibility applied to all repos or selected repos:
+
+```bash
+gh secret set COPILOT_CLI_TOKEN --org <org> --visibility all
+```
+
+Or to scope the secret to specific repositories:
+
+```bash
+gh secret set COPILOT_CLI_TOKEN --org <org> --visibility selected --repos <repo1>,<repo2>
+```
+
+Paste or pipe the token when prompted.
+
+### Alternative: Store the secret at repository level
+
+For a single repository, store the secret at the repository level:
+
+```bash
+gh secret set COPILOT_CLI_TOKEN -R <owner>/<repo>
+```
+
+### Notes
+
+- The workflow consumes GitHub Copilot usage for each PR review.
+- The workflow runs once per PR (guarded by the `compliance reviewed` label) unless the label is removed, which forces a re-review.
+
 ## GHES differences
 
 - Some GHES versions expose different endpoints for CodeQL default setup, secret scanning, and push protection.
