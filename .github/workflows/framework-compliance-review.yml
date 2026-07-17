@@ -124,17 +124,25 @@ jobs:
           Instructions:
           1. Inspect the diff between BASE_SHA and HEAD_SHA using git commands
           2. Evaluate all changes against the framework requirements embedded in your instructions
-          3. Produce a concise Markdown compliance report with these sections:
-             - Summary: Brief overview of what was reviewed
-             - Findings: List each issue with:
-               * Severity: Critical/High/Medium/Low
-               * Evidence: Specific file:line references
-               * Remediation: Clear guidance on how to address
-             - Verdict: Overall assessment (PASS or CONCERNS)
-          4. If there are no in-scope changes for framework compliance, state that briefly
-          5. Write ONLY the final Markdown report to stdout (no additional commentary)
-
-          Your output will be posted as a PR comment.'
+          3. Output RAW GitHub-Flavored Markdown ONLY. Do NOT wrap the report in code fences or triple backticks. Do NOT include any preamble, reasoning, tool narration, or sign-off. Begin the output directly with the Summary heading.
+          4. Produce exactly these three sections:
+             
+             ## Summary
+             One or two plain-language sentences describing what was reviewed, followed by a single scannable status line in this exact format:
+             **Verdict:** PASS  |  **Risk tier:** <Low/Medium/High>  |  Critical: N - High: N - Medium: N - Low: N
+             
+             Use PASS when there are no Critical/High findings, otherwise CONCERNS. Use plain hyphens as separators between the counts, no em dashes.
+             
+             ## Findings
+             A Markdown table with header row: | Severity | Location | Issue | Remediation |
+             One row per finding. Severity is one of Critical/High/Medium/Low. Location is a file:line reference in backticks.
+             If there are no in-scope findings, omit the table and write a single italic line: _No compliance issues found in this change._
+             
+             ## Verdict
+             **PASS** or **CONCERNS** followed by a hyphen and one concise sentence of justification.
+          
+          5. Keep it concise. Plain hyphens, no em dashes, no emojis.
+          6. Your output is posted verbatim as a PR comment, so it must be clean Markdown with no wrapping fence and no commentary.'
 
           copilot --agent framework-compliance-reviewer --allow-all-tools -s --log-level error -p "$PROMPT" > review.md 2> copilot-err.log || {
             echo "Copilot CLI failed:"
@@ -155,7 +163,29 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const reviewContent = fs.readFileSync('review.md', 'utf8');
+            let reviewContent = fs.readFileSync('review.md', 'utf8');
+            const originalContent = reviewContent;
+            
+            // Defensive sanitizer: unwrap code fences and strip preamble
+            reviewContent = reviewContent.trim();
+            
+            // If content is wrapped in a ```markdown / ```md / ``` fence containing headings, extract it
+            const fencedMatch = reviewContent.match(/```(?:markdown|md)?\s*\n([\s\S]*?)\n```/);
+            if (fencedMatch && /(^|\n)#{1,6}\s/.test(fencedMatch[1])) {
+              reviewContent = fencedMatch[1];
+            }
+            
+            // Strip any preamble before the first Markdown heading
+            const headingMatch = reviewContent.match(/(^|\n)(#{1,6}\s)/);
+            if (headingMatch) {
+              const headingStart = headingMatch.index + (headingMatch[1].length);
+              reviewContent = reviewContent.slice(headingStart).replace(/^\n+/, '');
+            }
+            
+            // Guard against empty result
+            if (!reviewContent.trim()) {
+              reviewContent = originalContent;
+            }
             
             const marker = '<!-- framework-compliance-review -->';
             const heading = '## Framework Compliance Review';

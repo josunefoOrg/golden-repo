@@ -35,6 +35,24 @@ Use a GitHub App installation token or another approved short-lived token source
 
 See [docs/architecture.md](docs/architecture.md) for the template architecture, repository layout, provisioning flow, and security baseline.
 
+## Workflows
+
+This template includes GitHub Actions workflows that automate testing, security scanning, supply-chain integrity, and repository provisioning. The status checks `test`, `analyze`, and `gitleaks` are required for merge on protected branches.
+
+- **CI** (`.github/workflows/ci.yml`) - Runs on every pull request and push to `main`. Installs dependencies from `tools/requirements.txt`, runs pytest, and lints. Produces the required `test` status check.
+
+- **CodeQL** (`.github/workflows/codeql.yml`) - Advanced static analysis (SAST). Runs on pull requests, push to `main`, and weekly (Mondays 03:23 UTC). Scans Python and JavaScript/TypeScript code; skips languages absent from the repo. Produces the required `analyze` status check. Note: this template uses advanced CodeQL configuration; do not enable CodeQL "default setup" in the UI as it conflicts.
+
+- **Secret Scan** (`.github/workflows/secret-scan.yml`) - Runs Gitleaks on pull requests and push to `main`, scanning full git history. Produces the required `gitleaks` status check. Complements GitHub-native secret scanning and push protection (enabled by the provisioner).
+
+- **SBOM and Signing** (`.github/workflows/sbom-signing.yml`) - SLSA L3-aligned supply-chain workflow. Triggered on release publication, tag push matching `v*`, or manual dispatch. Generates Syft SPDX SBOMs, signs them keylessly with Cosign using OIDC, and pairs release artifacts with SLSA provenance.
+
+- **Framework Compliance Review** (`.github/workflows/framework-compliance-review.yml`) - Runs on pull requests (opened, reopened, synchronized, ready_for_review). Invokes the `framework-compliance-reviewer` Copilot custom agent to review the repo against the AI Agent Risk Management framework and posts the review as a PR comment, adding a `compliance reviewed` label. Skips PRs already carrying the label (remove it to force re-review). Requires an organization-level Actions secret `COPILOT_CLI_TOKEN` (a fine-grained personal access token from a Copilot-enabled account; classic PATs are not supported by the Copilot CLI). Consumes Copilot usage quota.
+
+- **Provision New Repository** (`.github/workflows/provision-new-repo.yml`) - Self-service workflow for creating and securing new repositories from this template. Triggered via manual dispatch (`workflow_dispatch`), gated behind the `repo-provisioning` environment approval. IMPORTANT: This workflow exists only in golden-repo and is the provisioning tool itself; it is removed from every generated repository and does not run inside provisioned repos.
+
+- **Dependabot** (`.github/dependabot.yml`) - Configuration (not a workflow file). Schedules weekly version updates for GitHub Actions and pip dependencies (`/tools`), grouped and labeled `dependencies`. Uncommented entries update Actions and tools; additional ecosystems (npm, docker) are commented out and can be enabled once their manifest files exist.
+
 ## Provisioning a new repo
 
 New repositories are provisioned through:
@@ -127,7 +145,7 @@ Recommended agents to support new agent/security-tooling projects:
 - **IaC agent** - reviews and authors infrastructure-as-code in `infra/` (Bicep/Terraform), enforces tagging, network, and least-privilege conventions.
 - **Security agent** - reviews changes for security issues, validates the security baseline (secret scanning, CodeQL, signed commits), and flags risky patterns.
 - **AI Risk & Security Advisor** (`.github/agents/risk-security-advisor.md`) - included in this template. Advises on risk tier classification, Zero Trust architecture, threat detection, incident response, and compliance for enterprise AI agents on Microsoft Foundry.
-- **Framework Compliance Reviewer** (`.github/agents/framework-compliance-reviewer.md`) - included in this template. Reviews repository content and configuration against the AI Agent Risk Management framework (Zero Trust, RBAC, guardrails, data protection, supply chain security, risk tiering, and mandatory controls) and reports compliance gaps with evidence-based remediation. The review rubric is embedded in the agent, so it works standalone in any generated repo. An automated PR review workflow (`.github/workflows/framework-compliance-review.yml`) runs this agent on each pull request and labels the PR `compliance reviewed` when done, skipping PRs already carrying that label. The workflow requires an organization-level Actions secret named `COPILOT_CLI_TOKEN` (a personal access token from a Copilot-enabled account) to authenticate the GitHub Copilot CLI.
+- **Framework Compliance Reviewer** (`.github/agents/framework-compliance-reviewer.md`) - included in this template. Reviews repository content and configuration against the AI Agent Risk Management framework (Zero Trust, RBAC, guardrails, data protection, supply chain security, risk tiering, and mandatory controls) and reports compliance gaps with evidence-based remediation. The review rubric is embedded in the agent, so it works standalone in any generated repo. An automated PR review workflow (`.github/workflows/framework-compliance-review.yml`) runs this agent on each pull request and labels the PR `compliance reviewed` when done, skipping PRs already carrying that label. The workflow requires an organization-level Actions secret named `COPILOT_CLI_TOKEN` (a fine-grained personal access token from a Copilot-enabled account; classic PATs are not supported by the Copilot CLI) to authenticate the GitHub Copilot CLI.
 
 To add another agent, drop a new `.github/agents/<name>.md` file following the same front matter format. To remove one, delete its file. Agents are inert until invoked, so they add no runtime cost to a generated repo.
 
