@@ -8,6 +8,7 @@ re-apply settings to an existing repository.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -60,6 +61,7 @@ class Summary:
     team_member_warnings: list[str] = field(default_factory=list)
     branch_protection_applied: bool = False
     security_features_enabled: list[str] = field(default_factory=list)
+    readme_replaced: bool = False
     skipped: list[str] = field(default_factory=list)
 
 
@@ -375,6 +377,64 @@ def is_repo_already_exists(payload: dict[str, Any] | str | None) -> bool:
     )
 
 
+def replace_readme_with_placeholder(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+) -> None:
+    """Replace the generated repo's README.md with the placeholder template."""
+    progress("Replacing README.md with placeholder template")
+    
+    # Load and substitute the template
+    script_dir = Path(__file__).parent
+    template_path = script_dir / "templates" / "README.template.md"
+    
+    if not template_path.exists():
+        raise ProvisioningError(
+            f"README template not found at {template_path}. "
+            "Ensure tools/templates/README.template.md exists."
+        )
+    
+    template_content = template_path.read_text(encoding="utf-8")
+    readme_content = template_content.replace("{{REPO_NAME}}", args.name)
+    
+    if client.dry_run:
+        progress(
+            f"Would replace README.md in {args.org}/{args.name} "
+            f"({len(readme_content)} bytes)"
+        )
+        summary.readme_replaced = True
+        return
+    
+    # Get existing README.md to obtain its sha (for idempotent updates)
+    sha: str | None = None
+    status, payload = client.request_allowing_statuses(
+        "GET",
+        f"/repos/{args.org}/{args.name}/contents/README.md",
+        allowed=(200, 404),
+    )
+    
+    if status == 200 and isinstance(payload, dict):
+        sha = payload.get("sha")
+    
+    # PUT the new README content
+    readme_b64 = base64.b64encode(readme_content.encode("utf-8")).decode("ascii")
+    body: dict[str, Any] = {
+        "message": "Replace README.md with placeholder template",
+        "content": readme_b64,
+    }
+    if sha:
+        body["sha"] = sha
+    
+    client.request(
+        "PUT",
+        f"/repos/{args.org}/{args.name}/contents/README.md",
+        body=body,
+        expected=(200, 201),
+    )
+    summary.readme_replaced = True
+
+
 def update_repo_settings(client: GitHubClient, args: argparse.Namespace) -> None:
     progress("Updating repository description and visibility")
     client.request(
@@ -674,6 +734,7 @@ def print_summary(summary: Summary) -> None:
                 "required_checks": REQUIRED_CHECKS,
             },
             "security_features_enabled": summary.security_features_enabled,
+            "readme_replaced": summary.readme_replaced,
             "skipped": summary.skipped,
         },
         indent=2,
@@ -701,6 +762,7 @@ def main(argv: list[str] | None = None) -> int:
         client = GitHubClient(token=token, dry_run=args.dry_run)
 
         create_or_get_repo(client, args, summary)
+        replace_readme_with_placeholder(client, args, summary)
         update_repo_settings(client, args)
         provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)
