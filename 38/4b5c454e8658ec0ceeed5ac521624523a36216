@@ -1,0 +1,19 @@
+examples/sample-agent-config.yml
+  s_95e89cd35318d3::t_b8ac92691bd41a 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "384b5c454e8658ec0ceeed5ac521624523a36216",
+  "prompts": {},
+  "sessions": {
+    "s_95e89cd35318d3": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LSkQry5KvmFc5joxYNyAvu",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
