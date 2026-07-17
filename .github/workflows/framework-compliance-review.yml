@@ -4,7 +4,7 @@
 # `framework-compliance-reviewer` defined in .github/agents/framework-compliance-reviewer.md
 #
 # REQUIREMENTS:
-# - Secret COPILOT_GITHUB_TOKEN must be configured (Personal Access Token from an account
+# - Secret COPILOT_CLI_TOKEN must be configured (Personal Access Token from an account
 #   with a GitHub Copilot seat - the built-in GITHUB_TOKEN cannot authenticate Copilot CLI)
 # - This workflow consumes GitHub Copilot usage quota
 #
@@ -52,19 +52,19 @@ jobs:
               core.setOutput('already', 'false');
             }
 
-      - name: Preflight - verify COPILOT_GITHUB_TOKEN is set
+      - name: Preflight - verify COPILOT_CLI_TOKEN is set
         if: steps.guard.outputs.already != 'true'
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
         run: |
           if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
-            echo "ERROR: COPILOT_GITHUB_TOKEN secret is not configured"
+            echo "ERROR: COPILOT_CLI_TOKEN secret is not configured or not visible to this repository"
             echo "The Copilot CLI requires a Personal Access Token from an account with a Copilot seat"
             echo "The built-in GITHUB_TOKEN cannot be used to authenticate the Copilot CLI"
-            echo "Please configure the COPILOT_GITHUB_TOKEN secret at the org or repository level"
+            echo "Configure the COPILOT_CLI_TOKEN secret at the org level with 'All repositories' visibility (this repo is public), or at the repository level"
             exit 1
           fi
-          echo "COPILOT_GITHUB_TOKEN is configured"
+          echo "COPILOT_CLI_TOKEN is configured"
 
       - name: Checkout PR
         if: steps.guard.outputs.already != 'true'
@@ -108,7 +108,7 @@ jobs:
       - name: Run framework compliance review
         if: steps.guard.outputs.already != 'true'
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
           GH_TOKEN: ${{ github.token }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
