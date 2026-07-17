@@ -1,0 +1,47 @@
+tests/test_provision_readme.py
+  s_83b9c1203d3e3d::t_d842830a1c25b8 16-35,38-59,62-80,83-97,101-118,122-123,130-132,134,136
+  s_83b9c1203d3e3d::t_3109118733aa40 98-100,119-121
+  s_83b9c1203d3e3d::t_9906059b029ccf 36-37,60-61,81-82
+  s_83b9c1203d3e3d::t_1b3c5b6ec37f35 124-129
+  s_83b9c1203d3e3d::t_b36614a4a966a8 133
+  s_83b9c1203d3e3d::t_0fe1353768cb2f 135
+  s_83b9c1203d3e3d::t_b2bc412afe5ed6 137-138
+README.md
+  s_90d7000bbcf5b2::t_6287434d8eea61 77-90
+docs/SETUP.md
+  s_a48e8510d51995::t_362e359b2332b7 43,58
+tools/provision_repo.py
+  s_a48e8510d51995::t_c27ef392151202 380-437,823
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3cbe13073f3afaf4298f4bd7ddeba99c3b7b233f",
+  "prompts": {},
+  "sessions": {
+    "s_83b9c1203d3e3d": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01N1NsDHreHCKv469K5tTpVo",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_90d7000bbcf5b2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LDEvMc4c6pKcF4FZvnEcof",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_a48e8510d51995": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_013RTzQnvVwSD1gbmcR9Gkwb",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
