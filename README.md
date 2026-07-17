@@ -109,6 +109,7 @@ Recommended agents to support new agent/security-tooling projects:
 - **IaC agent** - reviews and authors infrastructure-as-code in `infra/` (Bicep/Terraform), enforces tagging, network, and least-privilege conventions.
 - **Security agent** - reviews changes for security issues, validates the security baseline (secret scanning, CodeQL, signed commits), and flags risky patterns.
 - **AI Risk & Security Advisor** (`.github/agents/risk-security-advisor.md`) - included in this template. Advises on risk tier classification, Zero Trust architecture, threat detection, incident response, and compliance for enterprise AI agents on Microsoft Foundry.
+- **Framework Compliance Reviewer** (`.github/agents/framework-compliance-reviewer.md`) - included in this template. Reviews repository content and configuration against the AI Agent Risk Management framework (Zero Trust, RBAC, guardrails, data protection, supply chain security, risk tiering, and mandatory controls) and reports compliance gaps with evidence-based remediation. The review rubric is embedded in the agent, so it works standalone in any generated repo.
 
 To add another agent, drop a new `.github/agents/<name>.md` file following the same front matter format. To remove one, delete its file. Agents are inert until invoked, so they add no runtime cost to a generated repo.
 

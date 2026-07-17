@@ -16,11 +16,21 @@ UI path:
 
 1. Open `https://github.com/organizations/josunefoOrg/settings/apps`.
 2. Select `New GitHub App`.
+
+   ![Developer settings GitHub Apps page showing New GitHub App button](images/setup/01-new-github-app.png)
+
+   *GitHub Apps settings page with the New GitHub App button.*
+
 3. Set GitHub App name, for example `josunefoOrg-repo-provisioner`.
 4. Set Homepage URL to `https://github.com/josunefoOrg/golden-repo`.
 5. Webhook:
    - Clear `Active`.
    - No webhook subscriptions are needed.
+
+   ![Create GitHub App form with name, homepage URL, callback URL, and post-installation fields](images/setup/02-create-app-form.png)
+
+   *Create GitHub App form showing required fields.*
+
 6. Set repository permissions:
    - Administration: Read and write.
    - Contents: Read and write.
@@ -49,6 +59,10 @@ Members: Read-only
 Webhooks: none
 ```
 
+![Repository permissions screen with Actions and Administration set to Read and write](images/setup/03-repository-permissions.png)
+
+*Repository permissions configuration showing required Actions and Administration access.*
+
 ## 2. Generate and download the private key
 
 MANUAL ONE-TIME STEP. This private key is a trust anchor.
@@ -59,6 +73,11 @@ UI path:
 2. Select the provisioner App.
 3. Open `General`.
 4. Under `Private keys`, select `Generate a private key`.
+
+   ![Private keys section with Generate a private key button](images/setup/04-generate-private-key.png)
+
+   *Private keys section showing the Generate a private key button.*
+
 5. Save the downloaded `.pem` file locally.
 6. Do not commit the private key.
 7. Delete local copies after storing the key as an org Actions secret.
@@ -72,9 +91,19 @@ UI path:
 1. Open the App settings page.
 2. Select `Install App`.
 3. Select `josunefoOrg`.
+
+   ![Install App page with josunefoOrg account selected](images/setup/05-install-app-choose-account.png)
+
+   *Install App page showing josunefoOrg as the target account.*
+
 4. Choose one:
    - `All repositories` for centralized provisioning across the org.
    - `Only select repositories` if the App should operate only on approved repos.
+
+   ![Install screen showing repository selection and granted permissions summary](images/setup/06-install-app-select-repositories.png)
+
+   *Repository selection and permissions summary during app installation.*
+
 5. Select `Install`.
 
 Least-privilege default: choose selected repositories unless the platform team has approved org-wide provisioning.
@@ -89,9 +118,18 @@ MANUAL ONE-TIME STEP. Use org-level storage so the platform workflow can mint Ap
 2. Under `Variables`, create:
    - Name: `PROVISIONER_APP_ID`
    - Value: the GitHub App ID.
+
+   ![Organization variables tab showing PROVISIONER_APP_ID](images/setup/07-org-variable-app-id.png)
+
+   *Organization variables tab with PROVISIONER_APP_ID variable.*
+
 3. Under `Secrets`, create:
    - Name: `PROVISIONER_APP_PRIVATE_KEY`
    - Value: the full downloaded private key contents, including the BEGIN and END lines.
+
+   ![Organization secrets tab showing PROVISIONER_APP_PRIVATE_KEY](images/setup/08-org-secret-private-key.png)
+
+   *Organization secrets tab with PROVISIONER_APP_PRIVATE_KEY secret.*
 
 ### `gh` alternative
 
@@ -126,6 +164,11 @@ MANUAL ONE-TIME STEP. This is the approval gate before privileged repository pro
 1. Open `https://github.com/josunefoOrg/golden-repo/settings/environments`.
 2. Select `New environment`.
 3. Name it `repo-provisioning`.
+
+   ![Environments Add screen with repo-provisioning name](images/setup/09-create-environment.png)
+
+   *Create new GitHub Environment with the name repo-provisioning.*
+
 4. Select `Configure environment`.
 5. Enable `Required reviewers`.
 6. Add the approved reviewer team or users. Prefer a team, for example `maintainers` or `platform-team`.
