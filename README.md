@@ -35,6 +35,24 @@ Use a GitHub App installation token or another approved short-lived token source
 
 See [docs/architecture.md](docs/architecture.md) for the template architecture, repository layout, provisioning flow, and security baseline.
 
+## Workflows
+
+This template includes GitHub Actions workflows that automate testing, security scanning, supply-chain integrity, and repository provisioning. The status checks `test`, `analyze`, and `gitleaks` are required for merge on protected branches.
+
+- **CI** (`.github/workflows/ci.yml`) - Runs on every pull request and push to `main`. Installs dependencies from `tools/requirements.txt`, runs pytest, and lints. Produces the required `test` status check.
+
+- **CodeQL** (`.github/workflows/codeql.yml`) - Advanced static analysis (SAST). Runs on pull requests, push to `main`, and weekly (Mondays 03:23 UTC). Scans Python and JavaScript/TypeScript code; skips languages absent from the repo. Produces the required `analyze` status check. Note: this template uses advanced CodeQL configuration; do not enable CodeQL "default setup" in the UI as it conflicts.
+
+- **Secret Scan** (`.github/workflows/secret-scan.yml`) - Runs Gitleaks on pull requests and push to `main`, scanning full git history. Produces the required `gitleaks` status check. Complements GitHub-native secret scanning and push protection (enabled by the provisioner).
+
+- **SBOM and Signing** (`.github/workflows/sbom-signing.yml`) - SLSA L3-aligned supply-chain workflow. Triggered on release publication, tag push matching `v*`, or manual dispatch. Generates Syft SPDX SBOMs, signs them keylessly with Cosign using OIDC, and pairs release artifacts with SLSA provenance.
+
+- **Framework Compliance Review** (`.github/workflows/framework-compliance-review.yml`) - Runs on pull requests (opened, reopened, synchronized, ready_for_review). Invokes the `framework-compliance-reviewer` Copilot custom agent to review the repo against the AI Agent Risk Management framework and posts the review as a PR comment, adding a `compliance reviewed` label. Skips PRs already carrying the label (remove it to force re-review). Requires an organization-level Actions secret `COPILOT_CLI_TOKEN` (a personal access token from a Copilot-enabled account). Consumes Copilot usage quota.
+
+- **Provision New Repository** (`.github/workflows/provision-new-repo.yml`) - Self-service workflow for creating and securing new repositories from this template. Triggered via manual dispatch (`workflow_dispatch`), gated behind the `repo-provisioning` environment approval. IMPORTANT: This workflow exists only in golden-repo and is the provisioning tool itself; it is removed from every generated repository and does not run inside provisioned repos.
+
+- **Dependabot** (`.github/dependabot.yml`) - Configuration (not a workflow file). Schedules weekly version updates for GitHub Actions and pip dependencies (`/tools`), grouped and labeled `dependencies`. Uncommented entries update Actions and tools; additional ecosystems (npm, docker) are commented out and can be enabled once their manifest files exist.
+
 ## Provisioning a new repo
 
 New repositories are provisioned through:

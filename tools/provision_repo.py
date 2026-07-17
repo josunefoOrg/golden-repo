@@ -62,6 +62,7 @@ class Summary:
     branch_protection_applied: bool = False
     security_features_enabled: list[str] = field(default_factory=list)
     readme_replaced: bool = False
+    provision_workflow_removed: bool = False
     skipped: list[str] = field(default_factory=list)
 
 
@@ -493,6 +494,52 @@ def replace_readme_with_placeholder(
     summary.readme_replaced = True
 
 
+def remove_provision_workflow(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+) -> None:
+    """Remove provision-new-repo.yml workflow from the generated repo."""
+    progress("Removing provision-new-repo.yml workflow from generated repo")
+    
+    workflow_path = ".github/workflows/provision-new-repo.yml"
+    
+    if client.dry_run:
+        progress(f"Would remove {workflow_path} from {args.org}/{args.name}")
+        summary.provision_workflow_removed = True
+        return
+    
+    # Get the workflow file to obtain its sha (404 if not present = idempotent)
+    status, payload = client.request_allowing_statuses(
+        "GET",
+        f"/repos/{args.org}/{args.name}/contents/{workflow_path}",
+        allowed=(200, 404),
+    )
+    
+    if status == 404:
+        progress(f"{workflow_path} not present, nothing to remove")
+        return
+    
+    # File exists, extract sha and delete it
+    if status == 200 and isinstance(payload, dict):
+        sha = payload.get("sha")
+        if not sha:
+            raise ProvisioningError(
+                f"GET {workflow_path} returned 200 but no sha in response"
+            )
+        
+        client.request(
+            "DELETE",
+            f"/repos/{args.org}/{args.name}/contents/{workflow_path}",
+            body={
+                "message": "Remove provisioning workflow from generated repo",
+                "sha": sha,
+            },
+            expected=(200,),
+        )
+        summary.provision_workflow_removed = True
+
+
 def update_repo_settings(client: GitHubClient, args: argparse.Namespace) -> None:
     progress("Updating repository description and visibility")
     client.request(
@@ -793,6 +840,7 @@ def print_summary(summary: Summary) -> None:
             },
             "security_features_enabled": summary.security_features_enabled,
             "readme_replaced": summary.readme_replaced,
+            "provision_workflow_removed": summary.provision_workflow_removed,
             "skipped": summary.skipped,
         },
         indent=2,
@@ -822,6 +870,7 @@ def main(argv: list[str] | None = None) -> int:
         create_or_get_repo(client, args, summary)
         wait_for_template_ready(client, args)
         replace_readme_with_placeholder(client, args, summary)
+        remove_provision_workflow(client, args, summary)
         update_repo_settings(client, args)
         provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)

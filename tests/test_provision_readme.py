@@ -251,3 +251,86 @@ class TestReadmePlaceholder:
         assert body["sha"] == "abc123existing"
         
         assert summary.readme_replaced is True
+
+
+class TestProvisionWorkflowRemoval:
+    """Test that provision-new-repo.yml workflow is removed from generated repos."""
+
+    def test_remove_workflow_dry_run(self):
+        """Test workflow removal in dry-run mode."""
+        client = MagicMock()
+        client.dry_run = True
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        summary = provision_repo.Summary()
+        
+        provision_repo.remove_provision_workflow(client, args, summary)
+        
+        assert summary.provision_workflow_removed is True
+        assert client.request_allowing_statuses.call_count == 0  # No API calls in dry-run
+        assert client.request.call_count == 0
+
+    def test_remove_workflow_file_present(self):
+        """Test workflow removal when file exists (GET 200 returns sha)."""
+        client = MagicMock()
+        client.dry_run = False
+        client.request_allowing_statuses.return_value = (
+            200,
+            {"sha": "workflow-file-sha-abc123"}
+        )
+        client.request.return_value = MagicMock()
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        summary = provision_repo.Summary()
+        
+        provision_repo.remove_provision_workflow(client, args, summary)
+        
+        # Verify GET was called to fetch the sha
+        assert client.request_allowing_statuses.call_count == 1
+        get_call = client.request_allowing_statuses.call_args
+        assert get_call[0][0] == "GET"
+        assert ".github/workflows/provision-new-repo.yml" in get_call[0][1]
+        
+        # Verify DELETE was called with the correct path and sha
+        assert client.request.call_count == 1
+        delete_call = client.request.call_args
+        assert delete_call[0][0] == "DELETE"
+        assert ".github/workflows/provision-new-repo.yml" in delete_call[0][1]
+        
+        body = delete_call[1]["body"]
+        assert "sha" in body
+        assert body["sha"] == "workflow-file-sha-abc123"
+        assert "message" in body
+        
+        assert summary.provision_workflow_removed is True
+
+    def test_remove_workflow_file_absent(self):
+        """Test workflow removal when file is absent (GET 404) - idempotent."""
+        client = MagicMock()
+        client.dry_run = False
+        client.request_allowing_statuses.return_value = (404, None)
+        
+        args = MagicMock()
+        args.name = "test-repo"
+        args.org = "test-org"
+        
+        summary = provision_repo.Summary()
+        
+        # Should not raise, should handle 404 gracefully
+        provision_repo.remove_provision_workflow(client, args, summary)
+        
+        # Verify GET was called
+        assert client.request_allowing_statuses.call_count == 1
+        
+        # Verify DELETE was NOT called (file doesn't exist)
+        assert client.request.call_count == 0
+        
+        # Summary flag should not be set when file is absent
+        assert summary.provision_workflow_removed is False
+
