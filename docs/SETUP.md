@@ -316,7 +316,7 @@ If these commands fail with a license or endpoint error, enable the feature in t
 
 ## 9. Enable the framework compliance review workflow (optional)
 
-OPTIONAL STEP. This workflow runs the framework-compliance-reviewer Copilot agent on each pull request to review repository content and configuration against the AI Agent Risk Management framework, posts the compliance report as a PR comment, and adds a `compliance reviewed` label so the same PR is not re-reviewed. The workflow is included in every provisioned repo and inherited from the template. To enable it to run, store the GitHub Copilot CLI authentication token as an Actions secret named `COPILOT_CLI_TOKEN`.
+OPTIONAL STEP. This workflow runs the framework-compliance-reviewer Copilot agent on each pull request to review repository content and configuration against the AI Agent Risk Management framework, posts the compliance report as a PR comment, and adds a `compliance reviewed` label so the same PR is not re-reviewed. The workflow is included in every provisioned repo and inherited from the template. To enable it to run, store the GitHub Copilot CLI authentication token as an Actions secret named `COPILOT_GITHUB_TOKEN`.
 
 Prerequisite: a GitHub Copilot seat or subscription for the account whose token is used. The workflow runs the GitHub Copilot CLI headlessly, which requires authentication.
 
@@ -329,13 +329,13 @@ Create a fine-grained personal access token (PAT) from a Copilot-enabled account
 Store the secret at the organization level with visibility applied to all repos or selected repos:
 
 ```bash
-gh secret set COPILOT_CLI_TOKEN --org <org> --visibility all
+gh secret set COPILOT_GITHUB_TOKEN --org <org> --visibility all
 ```
 
 Or to scope the secret to specific repositories:
 
 ```bash
-gh secret set COPILOT_CLI_TOKEN --org <org> --visibility selected --repos <repo1>,<repo2>
+gh secret set COPILOT_GITHUB_TOKEN --org <org> --visibility selected --repos <repo1>,<repo2>
 ```
 
 Paste or pipe the token when prompted.
@@ -345,7 +345,7 @@ Paste or pipe the token when prompted.
 For a single repository, store the secret at the repository level:
 
 ```bash
-gh secret set COPILOT_CLI_TOKEN -R <owner>/<repo>
+gh secret set COPILOT_GITHUB_TOKEN -R <owner>/<repo>
 ```
 
 ### Notes
