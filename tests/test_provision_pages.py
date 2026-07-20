@@ -133,3 +133,45 @@ class TestEnablePages:
 
         with pytest.raises(provision_repo.ProvisioningError, match="Pages placeholder template"):
             provision_repo.enable_github_pages(client, _args(visibility="public"), summary)
+
+
+class TestProvisionStepOrdering:
+    """Pages must be enabled before branch protection.
+
+    The placeholder page is committed to main via the Contents API. A protected
+    main branch rejects direct commits (HTTP 409), so enable_github_pages must
+    run before apply_branch_protection.
+    """
+
+    def test_pages_runs_before_branch_protection(self, monkeypatch):
+        calls: list[str] = []
+
+        def recorder(name):
+            def _fn(*args, **kwargs):
+                calls.append(name)
+            return _fn
+
+        for step in (
+            "create_or_get_repo",
+            "wait_for_template_ready",
+            "replace_readme_with_placeholder",
+            "remove_provision_workflow",
+            "enable_github_pages",
+            "update_repo_settings",
+            "provision_team_access",
+            "apply_branch_protection",
+            "enable_security_features",
+            "note_codeowners_override",
+            "print_summary",
+        ):
+            monkeypatch.setattr(provision_repo, step, recorder(step))
+
+        rc = provision_repo.main(
+            ["--org", "o", "--name", "n", "--visibility", "public", "--dry-run"]
+        )
+
+        assert rc == 0
+        assert "enable_github_pages" in calls
+        assert "apply_branch_protection" in calls
+        assert calls.index("enable_github_pages") < calls.index("apply_branch_protection")
+

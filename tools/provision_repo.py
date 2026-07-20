@@ -961,11 +961,14 @@ def main(argv: list[str] | None = None) -> int:
         wait_for_template_ready(client, args)
         replace_readme_with_placeholder(client, args, summary)
         remove_provision_workflow(client, args, summary)
+        # Enable Pages before branch protection: the placeholder page is committed
+        # directly to main via the Contents API, which a protected main branch
+        # (signed commits + required PR/checks) would reject with HTTP 409.
+        enable_github_pages(client, args, summary)
         update_repo_settings(client, args)
         provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)
         enable_security_features(client, args, summary)
-        enable_github_pages(client, args, summary)
         note_codeowners_override(args, summary)
         if args.dry_run:
             summary.skipped.append("dry-run: no mutations were executed")
