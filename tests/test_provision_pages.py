@@ -67,12 +67,20 @@ class TestEnablePages:
         assert summary.pages_url == "https://test-org.github.io/test-repo/"
         assert client.request.call_count == 0
 
-    def test_public_repo_publishes_placeholder_and_enables_pages(self):
+    def test_public_repo_resets_docs_and_enables_pages(self):
         client = MagicMock()
         client.dry_run = False
-        # GET placeholder (404 = new file), then POST /pages (201 = created).
+        # 1) list docs/ (index + a stray page + a dir), 2) list docs/images,
+        # 3) POST /pages -> 201 created.
         client.request_allowing_statuses.side_effect = [
-            (404, None),
+            (200, [
+                {"type": "file", "path": "docs/index.md", "sha": "idx-sha"},
+                {"type": "file", "path": "docs/architecture.md", "sha": "arch-sha"},
+                {"type": "dir", "path": "docs/images", "sha": "dir-sha"},
+            ]),
+            (200, [
+                {"type": "file", "path": "docs/images/a.png", "sha": "img-sha"},
+            ]),
             (201, {"html_url": "https://test-org.github.io/test-repo/"}),
         ]
         client.request.return_value = MagicMock()
@@ -80,11 +88,21 @@ class TestEnablePages:
 
         provision_repo.enable_github_pages(client, _args(visibility="public"), summary)
 
-        # The placeholder page was committed via PUT contents.
-        put_call = client.request.call_args
-        assert put_call[0][0] == "PUT"
-        assert "/contents/docs/index.md" in put_call[0][1]
-        decoded = base64.b64decode(put_call[1]["body"]["content"]).decode("utf-8")
+        methods = [c[0][0] for c in client.request.call_args_list]
+        paths = [c[0][1] for c in client.request.call_args_list]
+
+        # The golden-repo docs are cleared: stray file and nested image deleted.
+        assert "DELETE" in methods
+        assert any(p.endswith("/contents/docs/architecture.md") for p in paths)
+        assert any(p.endswith("/contents/docs/images/a.png") for p in paths)
+
+        # The placeholder index.md is (re)written with the existing sha.
+        put_calls = [c for c in client.request.call_args_list if c[0][0] == "PUT"]
+        index_put = [c for c in put_calls if c[0][1].endswith("/contents/docs/index.md")]
+        assert len(index_put) == 1
+        body = index_put[0][1]["body"]
+        assert body["sha"] == "idx-sha"
+        decoded = base64.b64decode(body["content"]).decode("utf-8")
         assert "test-repo" in decoded
         assert "{{REPO_NAME}}" not in decoded
 
@@ -100,9 +118,11 @@ class TestEnablePages:
     def test_existing_pages_is_updated_idempotently(self):
         client = MagicMock()
         client.dry_run = False
-        # GET placeholder existing (200 w/ sha), then POST /pages 409 (already exists).
+        # docs/ already reset to just index.md; POST /pages -> 409 (already exists).
         client.request_allowing_statuses.side_effect = [
-            (200, {"sha": "existing-sha"}),
+            (200, [
+                {"type": "file", "path": "docs/index.md", "sha": "existing-sha"},
+            ]),
             (409, {"message": "Pages already exists"}),
         ]
         client.request.return_value = MagicMock()

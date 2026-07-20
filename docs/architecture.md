@@ -1,3 +1,9 @@
+---
+title: Architecture
+layout: default
+nav_order: 9
+---
+
 # golden-repo architecture
 
 golden-repo is the central template and provisioning control point for `josunefoOrg`. It combines:

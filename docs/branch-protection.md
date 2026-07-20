@@ -1,3 +1,9 @@
+---
+title: Branch protection
+layout: default
+nav_order: 8
+---
+
 # Branch protection baseline
 
 This is the authoritative `main` branch-protection baseline for repositories generated from `josunefoOrg/golden-repo`.

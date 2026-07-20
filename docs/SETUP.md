@@ -1,3 +1,9 @@
+---
+title: GitHub App setup
+layout: default
+nav_order: 5
+---
+
 # MANUAL ONE-TIME SETUP
 
 These steps cannot be fully scripted because they create trust anchors, install an org-level GitHub App, define approval gates, and enable organization security features.

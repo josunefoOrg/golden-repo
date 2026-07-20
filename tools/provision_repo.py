@@ -708,6 +708,42 @@ def enable_security_features(
     summary.security_features_enabled.append("CodeQL analysis (advanced workflow)")
 
 
+def _list_directory(
+    client: GitHubClient, org: str, repo: str, path: str
+) -> list[dict[str, Any]]:
+    """Return the immediate contents of a repository directory, or empty."""
+    status, payload = client.request_allowing_statuses(
+        "GET",
+        f"/repos/{org}/{repo}/contents/{path}",
+        allowed=(200, 404),
+    )
+    if status == 404 or not isinstance(payload, list):
+        return []
+    return payload
+
+
+def _delete_directory_tree(
+    client: GitHubClient, org: str, repo: str, path: str
+) -> None:
+    """Recursively delete every file under a repository directory."""
+    for item in _list_directory(client, org, repo, path):
+        if item.get("type") == "dir":
+            _delete_directory_tree(client, org, repo, item["path"])
+        else:
+            client.request(
+                "DELETE",
+                f"/repos/{org}/{repo}/contents/{item['path']}",
+                body={
+                    "message": (
+                        "Reset docs for GitHub Pages placeholder: "
+                        f"remove {item['path']}"
+                    ),
+                    "sha": item["sha"],
+                },
+                expected=(200,),
+            )
+
+
 def enable_github_pages(
     client: GitHubClient,
     args: argparse.Namespace,
@@ -716,9 +752,14 @@ def enable_github_pages(
     """Enable GitHub Pages for non-private repositories with a placeholder page.
 
     Private repositories are skipped: Pages on private/internal repos requires a
-    paid plan tier, and the user requirement is to enable Pages only when the
+    paid plan tier, and the requirement is to enable Pages only when the
     repository is not private. The Pages site is served from the ``main`` branch
-    ``/docs`` path, seeded with a placeholder landing page.
+    ``/docs`` path.
+
+    Provisioned repositories keep only a placeholder landing page. The golden-repo
+    documentation site is not carried into generated repositories, so this resets
+    the generated repository's ``docs/`` folder to the single placeholder page
+    before enabling Pages.
     """
     if args.visibility == "private":
         summary.skipped.append(
@@ -726,7 +767,7 @@ def enable_github_pages(
         )
         return
 
-    progress("Publishing GitHub Pages placeholder landing page")
+    progress("Resetting docs to the GitHub Pages placeholder landing page")
     script_dir = Path(__file__).parent
     template_path = script_dir / "templates" / "pages-index.template.md"
     if not template_path.exists():
@@ -741,29 +782,42 @@ def enable_github_pages(
 
     if client.dry_run:
         progress(
-            f"Would publish {pages_path} and enable GitHub Pages "
+            f"Would reset docs/ to {pages_path} and enable GitHub Pages "
             f"(main /docs) in {args.org}/{args.name}"
         )
         summary.pages_enabled = True
         summary.pages_url = f"https://{args.org}.github.io/{args.name}/"
         return
 
-    # Commit the placeholder landing page (idempotent via sha when present).
-    sha: str | None = None
-    status, payload = client.request_allowing_statuses(
-        "GET",
-        f"/repos/{args.org}/{args.name}/contents/{pages_path}",
-        allowed=(200, 404),
-    )
-    if status == 200 and isinstance(payload, dict):
-        sha = payload.get("sha")
+    # Clear the generated repository's docs/ so only the placeholder remains.
+    # Keep the existing index.md sha so its replacement is an idempotent update.
+    existing_index_sha: str | None = None
+    for item in _list_directory(client, args.org, args.name, "docs"):
+        if item.get("type") == "dir":
+            _delete_directory_tree(client, args.org, args.name, item["path"])
+        elif item.get("path") == pages_path:
+            existing_index_sha = item.get("sha")
+        else:
+            client.request(
+                "DELETE",
+                f"/repos/{args.org}/{args.name}/contents/{item['path']}",
+                body={
+                    "message": (
+                        "Reset docs for GitHub Pages placeholder: "
+                        f"remove {item['path']}"
+                    ),
+                    "sha": item["sha"],
+                },
+                expected=(200,),
+            )
 
+    # Commit the placeholder landing page (idempotent via sha when present).
     body: dict[str, Any] = {
         "message": "Add GitHub Pages placeholder landing page",
         "content": base64.b64encode(page_content.encode("utf-8")).decode("ascii"),
     }
-    if sha:
-        body["sha"] = sha
+    if existing_index_sha:
+        body["sha"] = existing_index_sha
     client.request(
         "PUT",
         f"/repos/{args.org}/{args.name}/contents/{pages_path}",
