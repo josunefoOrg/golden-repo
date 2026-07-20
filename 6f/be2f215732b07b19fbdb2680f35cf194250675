@@ -1,0 +1,46 @@
+docs/index.md
+  s_f37cf940565ff2::t_b3519554344a2a 1-26
+tools/provision_repo.py
+  s_f37cf940565ff2::t_8efc5392d1002a 64-65
+  s_a48e8510d51995::t_fc0160e12c9ed7 711-794,928-931,968
+tests/test_provision_pages.py
+  s_f37cf940565ff2::t_d9c95bfff46a57 1-135
+tools/templates/pages-index.template.md
+  s_f37cf940565ff2::t_3e43f0e339a094 1-17
+README.md
+  s_90d7000bbcf5b2::t_6578516a86d1ad 63
+docs/architecture.md
+  s_a48e8510d51995::t_244ce9f461e592 78-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6fbe2f215732b07b19fbdb2680f35cf194250675",
+  "prompts": {},
+  "sessions": {
+    "s_90d7000bbcf5b2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_01LDEvMc4c6pKcF4FZvnEcof",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_a48e8510d51995": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_013RTzQnvVwSD1gbmcR9Gkwb",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_f37cf940565ff2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f43dadc8-6252-4e7a-900a-b81ea5a83353",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
