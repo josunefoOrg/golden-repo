@@ -75,6 +75,8 @@ Expected responsibilities:
   - Secret scanning.
   - Secret scanning push protection.
   - CodeQL default setup where supported.
+- Enable GitHub Pages with a placeholder landing page for non-private
+  repositories (public and internal); skip Pages for private repositories.
 - Apply team-based access from workflow/script inputs.
 - Use only the token in `GITHUB_TOKEN`; never read or require a standing PAT.
 

@@ -61,6 +61,8 @@ class Summary:
     team_member_warnings: list[str] = field(default_factory=list)
     branch_protection_applied: bool = False
     security_features_enabled: list[str] = field(default_factory=list)
+    pages_enabled: bool = False
+    pages_url: str = ""
     readme_replaced: bool = False
     provision_workflow_removed: bool = False
     skipped: list[str] = field(default_factory=list)
@@ -706,6 +708,90 @@ def enable_security_features(
     summary.security_features_enabled.append("CodeQL analysis (advanced workflow)")
 
 
+def enable_github_pages(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+) -> None:
+    """Enable GitHub Pages for non-private repositories with a placeholder page.
+
+    Private repositories are skipped: Pages on private/internal repos requires a
+    paid plan tier, and the user requirement is to enable Pages only when the
+    repository is not private. The Pages site is served from the ``main`` branch
+    ``/docs`` path, seeded with a placeholder landing page.
+    """
+    if args.visibility == "private":
+        summary.skipped.append(
+            "GitHub Pages not enabled: repository is private"
+        )
+        return
+
+    progress("Publishing GitHub Pages placeholder landing page")
+    script_dir = Path(__file__).parent
+    template_path = script_dir / "templates" / "pages-index.template.md"
+    if not template_path.exists():
+        raise ProvisioningError(
+            f"Pages placeholder template not found at {template_path}. "
+            "Ensure tools/templates/pages-index.template.md exists."
+        )
+    page_content = template_path.read_text(encoding="utf-8").replace(
+        "{{REPO_NAME}}", args.name
+    )
+    pages_path = "docs/index.md"
+
+    if client.dry_run:
+        progress(
+            f"Would publish {pages_path} and enable GitHub Pages "
+            f"(main /docs) in {args.org}/{args.name}"
+        )
+        summary.pages_enabled = True
+        summary.pages_url = f"https://{args.org}.github.io/{args.name}/"
+        return
+
+    # Commit the placeholder landing page (idempotent via sha when present).
+    sha: str | None = None
+    status, payload = client.request_allowing_statuses(
+        "GET",
+        f"/repos/{args.org}/{args.name}/contents/{pages_path}",
+        allowed=(200, 404),
+    )
+    if status == 200 and isinstance(payload, dict):
+        sha = payload.get("sha")
+
+    body: dict[str, Any] = {
+        "message": "Add GitHub Pages placeholder landing page",
+        "content": base64.b64encode(page_content.encode("utf-8")).decode("ascii"),
+    }
+    if sha:
+        body["sha"] = sha
+    client.request(
+        "PUT",
+        f"/repos/{args.org}/{args.name}/contents/{pages_path}",
+        body=body,
+        expected=(200, 201),
+    )
+
+    # Enable Pages from the main branch /docs path. A 409 means Pages already
+    # exists, so update the source instead to stay idempotent.
+    progress("Enabling GitHub Pages (source: main branch /docs)")
+    status, _ = client.request_allowing_statuses(
+        "POST",
+        f"/repos/{args.org}/{args.name}/pages",
+        body={"source": {"branch": "main", "path": "/docs"}},
+        allowed=(201, 409),
+    )
+    if status == 409:
+        client.request(
+            "PUT",
+            f"/repos/{args.org}/{args.name}/pages",
+            body={"source": {"branch": "main", "path": "/docs"}},
+            expected=(204,),
+        )
+
+    summary.pages_enabled = True
+    summary.pages_url = f"https://{args.org}.github.io/{args.name}/"
+
+
 def ensure_team_exists(
     client: GitHubClient,
     org: str,
@@ -839,6 +925,10 @@ def print_summary(summary: Summary) -> None:
                 "required_checks": REQUIRED_CHECKS,
             },
             "security_features_enabled": summary.security_features_enabled,
+            "pages": {
+                "enabled": summary.pages_enabled,
+                "url": summary.pages_url,
+            },
             "readme_replaced": summary.readme_replaced,
             "provision_workflow_removed": summary.provision_workflow_removed,
             "skipped": summary.skipped,
@@ -875,6 +965,7 @@ def main(argv: list[str] | None = None) -> int:
         provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)
         enable_security_features(client, args, summary)
+        enable_github_pages(client, args, summary)
         note_codeowners_override(args, summary)
         if args.dry_run:
             summary.skipped.append("dry-run: no mutations were executed")
