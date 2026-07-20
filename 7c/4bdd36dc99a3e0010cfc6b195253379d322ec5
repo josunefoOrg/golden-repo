@@ -1,0 +1,53 @@
+docs/architecture.md
+  s_f37cf940565ff2::t_ac4d91fa63bd13 1-6
+docs/SETUP.md
+  s_a48e8510d51995::t_cd079b06d4c536 1-6
+docs/branch-protection.md
+  s_a48e8510d51995::t_81711fe4ca2885 1-6
+tools/provision_repo.py
+  s_a48e8510d51995::t_b69d07cfe38843 711-746,755,757-762,770,785,792-812,814,819-820
+docs/_config.yml
+  s_f37cf940565ff2::t_5c8b474f4ec6ff 1-37
+docs/agents.md
+  s_f37cf940565ff2::t_86cedb1262c9dd 1-40
+docs/configuration.md
+  s_f37cf940565ff2::t_ed4c35c784958a 1-75
+docs/getting-started.md
+  s_f37cf940565ff2::t_8d2f0c8518b210 1-60
+docs/index.md
+  s_f37cf940565ff2::t_219f5fee26f160 2-4,10-13,15-17,19,21-29,31,33-70
+docs/provisioning.md
+  s_f37cf940565ff2::t_b35cff4c4b0bea 1-101
+docs/security.md
+  s_f37cf940565ff2::t_f2a720ab5911de 1-67
+docs/troubleshooting.md
+  s_f37cf940565ff2::t_7670aedea62fc0 1-59
+docs/workflows.md
+  s_f37cf940565ff2::t_7e6e8aee2c034a 1-79
+tests/test_provision_pages.py
+  s_f37cf940565ff2::t_29f13100b10ded 70,73-74,76-83,91-105,121,123-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7c4bdd36dc99a3e0010cfc6b195253379d322ec5",
+  "prompts": {},
+  "sessions": {
+    "s_a48e8510d51995": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "toolu_013RTzQnvVwSD1gbmcR9Gkwb",
+        "model": "unknown"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    },
+    "s_f37cf940565ff2": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f43dadc8-6252-4e7a-900a-b81ea5a83353",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
