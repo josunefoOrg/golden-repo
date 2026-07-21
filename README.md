@@ -60,7 +60,7 @@ New repositories are provisioned through:
 - `tools/provision_repo.py` - command-line provisioning for repository settings, security features, branch protection, and team access.
 - `.github/workflows/provision-new-repo.yml` - self-service GitHub Actions workflow for creating and securing repositories from this template.
 
-The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below.
+The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below. For non-private repositories (public and internal), it also enables GitHub Pages with a placeholder landing page served from the `main` branch `/docs` folder; private repositories skip Pages.
 
 ## Required environment configuration
 

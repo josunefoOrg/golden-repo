@@ -61,6 +61,8 @@ class Summary:
     team_member_warnings: list[str] = field(default_factory=list)
     branch_protection_applied: bool = False
     security_features_enabled: list[str] = field(default_factory=list)
+    pages_enabled: bool = False
+    pages_url: str = ""
     readme_replaced: bool = False
     provision_workflow_removed: bool = False
     skipped: list[str] = field(default_factory=list)
@@ -706,6 +708,144 @@ def enable_security_features(
     summary.security_features_enabled.append("CodeQL analysis (advanced workflow)")
 
 
+def _list_directory(
+    client: GitHubClient, org: str, repo: str, path: str
+) -> list[dict[str, Any]]:
+    """Return the immediate contents of a repository directory, or empty."""
+    status, payload = client.request_allowing_statuses(
+        "GET",
+        f"/repos/{org}/{repo}/contents/{path}",
+        allowed=(200, 404),
+    )
+    if status == 404 or not isinstance(payload, list):
+        return []
+    return payload
+
+
+def _delete_directory_tree(
+    client: GitHubClient, org: str, repo: str, path: str
+) -> None:
+    """Recursively delete every file under a repository directory."""
+    for item in _list_directory(client, org, repo, path):
+        if item.get("type") == "dir":
+            _delete_directory_tree(client, org, repo, item["path"])
+        else:
+            client.request(
+                "DELETE",
+                f"/repos/{org}/{repo}/contents/{item['path']}",
+                body={
+                    "message": (
+                        "Reset docs for GitHub Pages placeholder: "
+                        f"remove {item['path']}"
+                    ),
+                    "sha": item["sha"],
+                },
+                expected=(200,),
+            )
+
+
+def enable_github_pages(
+    client: GitHubClient,
+    args: argparse.Namespace,
+    summary: Summary,
+) -> None:
+    """Enable GitHub Pages for non-private repositories with a placeholder page.
+
+    Private repositories are skipped: Pages on private/internal repos requires a
+    paid plan tier, and the requirement is to enable Pages only when the
+    repository is not private. The Pages site is served from the ``main`` branch
+    ``/docs`` path.
+
+    Provisioned repositories keep only a placeholder landing page. The golden-repo
+    documentation site is not carried into generated repositories, so this resets
+    the generated repository's ``docs/`` folder to the single placeholder page
+    before enabling Pages.
+    """
+    if args.visibility == "private":
+        summary.skipped.append(
+            "GitHub Pages not enabled: repository is private"
+        )
+        return
+
+    progress("Resetting docs to the GitHub Pages placeholder landing page")
+    script_dir = Path(__file__).parent
+    template_path = script_dir / "templates" / "pages-index.template.md"
+    if not template_path.exists():
+        raise ProvisioningError(
+            f"Pages placeholder template not found at {template_path}. "
+            "Ensure tools/templates/pages-index.template.md exists."
+        )
+    page_content = template_path.read_text(encoding="utf-8").replace(
+        "{{REPO_NAME}}", args.name
+    )
+    pages_path = "docs/index.md"
+
+    if client.dry_run:
+        progress(
+            f"Would reset docs/ to {pages_path} and enable GitHub Pages "
+            f"(main /docs) in {args.org}/{args.name}"
+        )
+        summary.pages_enabled = True
+        summary.pages_url = f"https://{args.org}.github.io/{args.name}/"
+        return
+
+    # Clear the generated repository's docs/ so only the placeholder remains.
+    # Keep the existing index.md sha so its replacement is an idempotent update.
+    existing_index_sha: str | None = None
+    for item in _list_directory(client, args.org, args.name, "docs"):
+        if item.get("type") == "dir":
+            _delete_directory_tree(client, args.org, args.name, item["path"])
+        elif item.get("path") == pages_path:
+            existing_index_sha = item.get("sha")
+        else:
+            client.request(
+                "DELETE",
+                f"/repos/{args.org}/{args.name}/contents/{item['path']}",
+                body={
+                    "message": (
+                        "Reset docs for GitHub Pages placeholder: "
+                        f"remove {item['path']}"
+                    ),
+                    "sha": item["sha"],
+                },
+                expected=(200,),
+            )
+
+    # Commit the placeholder landing page (idempotent via sha when present).
+    body: dict[str, Any] = {
+        "message": "Add GitHub Pages placeholder landing page",
+        "content": base64.b64encode(page_content.encode("utf-8")).decode("ascii"),
+    }
+    if existing_index_sha:
+        body["sha"] = existing_index_sha
+    client.request(
+        "PUT",
+        f"/repos/{args.org}/{args.name}/contents/{pages_path}",
+        body=body,
+        expected=(200, 201),
+    )
+
+    # Enable Pages from the main branch /docs path. A 409 means Pages already
+    # exists, so update the source instead to stay idempotent.
+    progress("Enabling GitHub Pages (source: main branch /docs)")
+    status, _ = client.request_allowing_statuses(
+        "POST",
+        f"/repos/{args.org}/{args.name}/pages",
+        body={"source": {"branch": "main", "path": "/docs"}},
+        allowed=(201, 409),
+    )
+    if status == 409:
+        client.request(
+            "PUT",
+            f"/repos/{args.org}/{args.name}/pages",
+            body={"source": {"branch": "main", "path": "/docs"}},
+            expected=(204,),
+        )
+
+    summary.pages_enabled = True
+    summary.pages_url = f"https://{args.org}.github.io/{args.name}/"
+
+
 def ensure_team_exists(
     client: GitHubClient,
     org: str,
@@ -839,6 +979,10 @@ def print_summary(summary: Summary) -> None:
                 "required_checks": REQUIRED_CHECKS,
             },
             "security_features_enabled": summary.security_features_enabled,
+            "pages": {
+                "enabled": summary.pages_enabled,
+                "url": summary.pages_url,
+            },
             "readme_replaced": summary.readme_replaced,
             "provision_workflow_removed": summary.provision_workflow_removed,
             "skipped": summary.skipped,
@@ -871,6 +1015,10 @@ def main(argv: list[str] | None = None) -> int:
         wait_for_template_ready(client, args)
         replace_readme_with_placeholder(client, args, summary)
         remove_provision_workflow(client, args, summary)
+        # Enable Pages before branch protection: the placeholder page is committed
+        # directly to main via the Contents API, which a protected main branch
+        # (signed commits + required PR/checks) would reject with HTTP 409.
+        enable_github_pages(client, args, summary)
         update_repo_settings(client, args)
         provision_team_access(client, args, summary)
         apply_branch_protection(client, args, summary)
