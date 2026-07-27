@@ -12,7 +12,7 @@ golden-repo is a GitHub template repository for creating secure agent and securi
 Create a new repository from this template:
 
 ```bash
-gh repo create <org>/<name> --template josunefoOrg/golden-repo
+gh repo create <org>/<name> --template <yourGitHubOrganization>/golden-repo
 ```
 
 Clone the generated repository and install the local tooling dependencies:
@@ -74,7 +74,7 @@ IMPORTANT: Create the GitHub Environment and its required reviewers manually in 
 
 Create the environment in the repository that hosts the workflow:
 
-1. Open repository or organization settings for `josunefoOrg/golden-repo`.
+1. Open repository or organization settings for `<yourGitHubOrganization>/golden-repo`.
 2. Go to `Settings` -> `Environments`.
 3. Select `New environment`.
 4. Name it `repo-provisioning`.
@@ -90,8 +90,8 @@ The workflow also needs these organization-level Actions credentials from the pr
 Set them with `gh`:
 
 ```bash
-gh variable set PROVISIONER_APP_ID --org josunefoOrg --body "<app-id>"
-gh secret set PROVISIONER_APP_PRIVATE_KEY --org josunefoOrg < path/to/private-key.pem
+gh variable set PROVISIONER_APP_ID --org <yourGitHubOrganization> --body "<app-id>"
+gh secret set PROVISIONER_APP_PRIVATE_KEY --org <yourGitHubOrganization> < path/to/private-key.pem
 ```
 
 Visibility flags may be required by org policy, for example `--visibility all` or selected repository access. See [docs/SETUP.md](docs/SETUP.md) for the full one-time GitHub App registration and installation steps.

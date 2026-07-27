@@ -6,7 +6,7 @@ nav_order: 9
 
 # Branch protection baseline
 
-This is the authoritative `main` branch-protection baseline for repositories generated from `josunefoOrg/golden-repo`.
+This is the authoritative `main` branch-protection baseline for repositories generated from `<yourGitHubOrganization>/golden-repo`.
 
 ## Required baseline for `main`
 
@@ -32,7 +32,7 @@ This is the authoritative `main` branch-protection baseline for repositories gen
 Set these variables first:
 
 ```powershell
-$org = "josunefoOrg"
+$org = "<yourGitHubOrganization>"
 $repo = "REPLACE_WITH_REPO_NAME"
 $branch = "main"
 ```
