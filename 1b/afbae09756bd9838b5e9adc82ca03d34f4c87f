@@ -1,0 +1,46 @@
+docs/agents.md
+  s_8e42d3daa5ed9e::t_7688b41362125b 4
+docs/adr/0001-record-evidence-policy.md
+  s_8e42d3daa5ed9e::t_9125e0942cc775 1-59
+docs/adr/0000-adr-template.md
+  s_8e42d3daa5ed9e::t_2bed7d3ceab875 1-39
+docs/adr/index.md
+  s_8e42d3daa5ed9e::t_2a511a884ae5dc 1-44
+docs/evidence-policy.md
+  s_8e42d3daa5ed9e::t_7ece3970d9276d 1-139
+.github/agents/risk-security-advisor.md
+  s_8e42d3daa5ed9e::t_0f670f0bffd25c 22,116-122,172
+docs/branch-protection.md
+  s_8e42d3daa5ed9e::t_cafdf24606a19b 4
+docs/index.md
+  s_8e42d3daa5ed9e::t_5fe4c3e39b749a 41,45
+docs/troubleshooting.md
+  s_8e42d3daa5ed9e::t_16398abd823969 4
+docs/architecture.md
+  s_8e42d3daa5ed9e::t_fc586a2b2b5e2d 4
+  s_8e42d3daa5ed9e::t_600c101a728cc6 136-159
+.github/agents/framework-compliance-reviewer.md
+  s_8e42d3daa5ed9e::t_e92b8a1307f34c 283-287
+  s_8e42d3daa5ed9e::t_331f9e64a03026 141-160,175-178
+  s_8e42d3daa5ed9e::t_2dcab033570fda 438-439,463
+README.md
+  s_8e42d3daa5ed9e::t_8df51faab47301 38-41
+CONTRIBUTING.md
+  s_8e42d3daa5ed9e::t_d46205f7f06641 83-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1bafbae09756bd9838b5e9adc82ca03d34f4c87f",
+  "prompts": {},
+  "sessions": {
+    "s_8e42d3daa5ed9e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "57201011-0d1a-4ff8-a63e-7c24f1cfcb32",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
