@@ -49,7 +49,7 @@ Run `python tools/provision_repo.py --help` for the full list.
 
 The provisioning flow performs these steps in order:
 
-1. Create or reuse the repository from `josunefoOrg/golden-repo`.
+1. Create or reuse the repository from `<yourGitHubOrganization>/golden-repo`.
 2. Wait for template population to stabilize.
 3. Replace `README.md` with the placeholder template.
 4. Remove `provision-new-repo.yml` from the generated repository. The

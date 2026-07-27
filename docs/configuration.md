@@ -24,8 +24,8 @@ Actions credentials:
 Set them with `gh`:
 
 ```bash
-gh variable set PROVISIONER_APP_ID --org josunefoOrg --body "<app-id>"
-gh secret set PROVISIONER_APP_PRIVATE_KEY --org josunefoOrg < path/to/private-key.pem
+gh variable set PROVISIONER_APP_ID --org <yourGitHubOrganization> --body "<app-id>"
+gh secret set PROVISIONER_APP_PRIVATE_KEY --org <yourGitHubOrganization> < path/to/private-key.pem
 ```
 
 Organization policy may require visibility flags, for example `--visibility all`
@@ -48,7 +48,7 @@ approval gate before privileged provisioning runs.
 Environment protection rules and required reviewers cannot be created through the
 API and must be configured manually in the GitHub UI:
 
-1. Open repository or organization settings for `josunefoOrg/golden-repo`.
+1. Open repository or organization settings for `<yourGitHubOrganization>/golden-repo`.
 2. Go to Settings, then Environments.
 3. Select New environment and name it `repo-provisioning`.
 4. Enable Required reviewers.

@@ -26,11 +26,11 @@ the local tooling. For applying the secure baseline, continue to
 Use the GitHub CLI:
 
 ```bash
-gh repo create <org>/<name> --template josunefoOrg/golden-repo
+gh repo create <org>/<name> --template <yourGitHubOrganization>/golden-repo
 ```
 
-Or use the GitHub UI: open
-[josunefoOrg/golden-repo](https://github.com/josunefoOrg/golden-repo), select
+Or use the GitHub UI: open your organization's copy of the template at
+`https://github.com/<yourGitHubOrganization>/golden-repo`, select
 `Use this template`, and create a new repository.
 
 ## Clone and install tooling

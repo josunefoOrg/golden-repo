@@ -10,7 +10,7 @@ These steps cannot be fully scripted because they create trust anchors, install 
 
 Complete these steps before using self-service repository provisioning.
 
-Target organization: `josunefoOrg`
+Target organization: `<yourGitHubOrganization>`
 
 Platform: GitHub.com
 
@@ -20,15 +20,15 @@ MANUAL ONE-TIME STEP.
 
 UI path:
 
-1. Open `https://github.com/organizations/josunefoOrg/settings/apps`.
+1. Open `https://github.com/organizations/<yourGitHubOrganization>/settings/apps`.
 2. Select `New GitHub App`.
 
    ![Developer settings GitHub Apps page showing New GitHub App button](images/setup/01-new-github-app.png)
 
    *GitHub Apps settings page with the New GitHub App button.*
 
-3. Set GitHub App name, for example `josunefoOrg-repo-provisioner`.
-4. Set Homepage URL to `https://github.com/josunefoOrg/golden-repo`.
+3. Set GitHub App name, for example `<yourGitHubOrganization>-repo-provisioner`.
+4. Set Homepage URL to `https://github.com/<yourGitHubOrganization>/golden-repo`.
 5. Webhook:
    - Clear `Active`.
    - No webhook subscriptions are needed.
@@ -75,7 +75,7 @@ MANUAL ONE-TIME STEP. This private key is a trust anchor.
 
 UI path:
 
-1. Open `https://github.com/organizations/josunefoOrg/settings/apps`.
+1. Open `https://github.com/organizations/<yourGitHubOrganization>/settings/apps`.
 2. Select the provisioner App.
 3. Open `General`.
 4. Under `Private keys`, select `Generate a private key`.
@@ -88,7 +88,7 @@ UI path:
 6. Do not commit the private key.
 7. Delete local copies after storing the key as an org Actions secret.
 
-## 3. Install the App on `josunefoOrg`
+## 3. Install the App on `<yourGitHubOrganization>`
 
 MANUAL ONE-TIME STEP.
 
@@ -96,11 +96,11 @@ UI path:
 
 1. Open the App settings page.
 2. Select `Install App`.
-3. Select `josunefoOrg`.
+3. Select `<yourGitHubOrganization>`.
 
-   ![Install App page with josunefoOrg account selected](images/setup/05-install-app-choose-account.png)
+   ![Install App page with <yourGitHubOrganization> account selected](images/setup/05-install-app-choose-account.png)
 
-   *Install App page showing josunefoOrg as the target account.*
+   *Install App page showing `<yourGitHubOrganization>` as the target account.*
 
 4. Choose one:
    - `All repositories` for centralized provisioning across the org.
@@ -120,7 +120,7 @@ MANUAL ONE-TIME STEP. Use org-level storage so the platform workflow can mint Ap
 
 ### UI steps
 
-1. Open `https://github.com/organizations/josunefoOrg/settings/secrets/actions`.
+1. Open `https://github.com/organizations/<yourGitHubOrganization>/settings/secrets/actions`.
 2. Under `Variables`, create:
    - Name: `PROVISIONER_APP_ID`
    - Value: the GitHub App ID.
@@ -146,11 +146,11 @@ $appId = "REPLACE_WITH_APP_ID"
 $privateKeyPath = ".\REPLACE_WITH_PRIVATE_KEY_FILE.pem"
 
 gh variable set PROVISIONER_APP_ID `
-  --org josunefoOrg `
+  --org <yourGitHubOrganization> `
   --body $appId
 
 gh secret set PROVISIONER_APP_PRIVATE_KEY `
-  --org josunefoOrg `
+  --org <yourGitHubOrganization> `
   --visibility all `
   --body (Get-Content -Raw $privateKeyPath)
 ```
@@ -167,7 +167,7 @@ MANUAL ONE-TIME STEP. This is the approval gate before privileged repository pro
 
 ### UI steps
 
-1. Open `https://github.com/josunefoOrg/golden-repo/settings/environments`.
+1. Open `https://github.com/<yourGitHubOrganization>/golden-repo/settings/environments`.
 2. Select `New environment`.
 3. Name it `repo-provisioning`.
 
@@ -185,7 +185,7 @@ MANUAL ONE-TIME STEP. This is the approval gate before privileged repository pro
 This example uses the `maintainers` team as the required reviewer team:
 
 ```powershell
-$org = "josunefoOrg"
+$org = "<yourGitHubOrganization>"
 $repo = "golden-repo"
 $environment = "repo-provisioning"
 $reviewerTeamSlug = "maintainers"
@@ -215,7 +215,7 @@ Required team slugs:
 
 ### UI steps
 
-1. Open `https://github.com/orgs/josunefoOrg/teams`.
+1. Open `https://github.com/orgs/<yourGitHubOrganization>/teams`.
 2. Select `New team`.
 3. Create each required team.
 4. Use visible or closed privacy according to org policy.
@@ -225,7 +225,7 @@ Required team slugs:
 ### `gh` alternative
 
 ```powershell
-$org = "josunefoOrg"
+$org = "<yourGitHubOrganization>"
 $teams = @("infra-team", "dev-team", "platform-team", "maintainers")
 
 foreach ($team in $teams) {
@@ -248,7 +248,7 @@ MANUAL ONE-TIME STEP.
 
 ### UI steps
 
-1. Open `https://github.com/josunefoOrg/golden-repo/settings`.
+1. Open `https://github.com/<yourGitHubOrganization>/golden-repo/settings`.
 2. Under `Template repository`, check `Template repository`.
 3. Save changes if prompted.
 
@@ -259,7 +259,7 @@ gh api `
   -X PATCH `
   -H "Accept: application/vnd.github+json" `
   -H "X-GitHub-Api-Version: 2022-11-28" `
-  "/repos/josunefoOrg/golden-repo" `
+  "/repos/<yourGitHubOrganization>/golden-repo" `
   -f is_template=true
 ```
 
@@ -269,7 +269,7 @@ MANUAL ONE-TIME STEP. Private repositories need GitHub Advanced Security for som
 
 ### Org UI
 
-1. Open `https://github.com/organizations/josunefoOrg/settings/security_analysis`.
+1. Open `https://github.com/organizations/<yourGitHubOrganization>/settings/security_analysis`.
 2. Enable GitHub Advanced Security according to license availability.
 3. Enable or allow:
    - Dependency graph.
@@ -281,7 +281,7 @@ MANUAL ONE-TIME STEP. Private repositories need GitHub Advanced Security for som
 
 ### Repository UI
 
-1. Open `https://github.com/josunefoOrg/golden-repo/settings/security_analysis`.
+1. Open `https://github.com/<yourGitHubOrganization>/golden-repo/settings/security_analysis`.
 2. Enable available security features for the template repository.
 3. Repeat for target private repositories if org-level defaults do not apply.
 
@@ -290,7 +290,7 @@ MANUAL ONE-TIME STEP. Private repositories need GitHub Advanced Security for som
 Enable repository security and analysis features where supported:
 
 ```powershell
-$org = "josunefoOrg"
+$org = "<yourGitHubOrganization>"
 $repo = "golden-repo"
 
 gh api `
@@ -306,7 +306,7 @@ gh api `
 Enable CodeQL default setup where the endpoint and license support it:
 
 ```powershell
-$org = "josunefoOrg"
+$org = "<yourGitHubOrganization>"
 $repo = "golden-repo"
 
 gh api `

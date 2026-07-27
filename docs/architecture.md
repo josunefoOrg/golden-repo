@@ -6,7 +6,7 @@ nav_order: 10
 
 # golden-repo architecture
 
-golden-repo is the central template and provisioning control point for `josunefoOrg`. It combines:
+golden-repo is the central template and provisioning control point for `<yourGitHubOrganization>`. It combines:
 
 1. Template repository contents: reusable baseline files, CI/security workflows, CODEOWNERS, docs, `infra/`, and `src/`.
 2. `tools/provision_repo.py`: the idempotent provisioning tool that creates or updates a generated repository using a GitHub App installation token from `GITHUB_TOKEN`.
@@ -39,7 +39,7 @@ approval gate: repo-provisioning environment
 GitHub App installation token
   |
   v
-generate repository from josunefoOrg/golden-repo template
+generate repository from <yourGitHubOrganization>/golden-repo template
   |
   v
 apply branch protection + security features
@@ -52,7 +52,7 @@ summary
 
 ### 1. Template repository contents
 
-The template repository is `josunefoOrg/golden-repo`. New repositories inherit the baseline project skeleton and governance assets from this repo:
+The template repository is `<yourGitHubOrganization>/golden-repo`. New repositories inherit the baseline project skeleton and governance assets from this repo:
 
 - `src/` for application source placeholders.
 - `infra/` for infrastructure-as-code placeholders.
@@ -73,7 +73,7 @@ The provisioning tool is the imperative enforcement layer. It should be safe to 
 
 Expected responsibilities:
 
-- Generate the target repository from `josunefoOrg/golden-repo`.
+- Generate the target repository from `<yourGitHubOrganization>/golden-repo`.
 - Apply the authoritative `main` branch-protection baseline.
 - Enable repository security features:
   - Dependabot alerts.

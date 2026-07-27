@@ -7,7 +7,7 @@ nav_order: 8
 # Evidence policy
 
 This policy governs how agents and contributors working in repositories generated
-from `josunefoOrg/golden-repo` treat information they capture, retrieve, or are
+from `<yourGitHubOrganization>/golden-repo` treat information they capture, retrieve, or are
 told. It extends the AI Agent Risk Management framework (see
 [Copilot agents](agents.md)) with an explicit model for **evidence trust and
 freshness**.

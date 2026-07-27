@@ -50,7 +50,7 @@ from this template.
 Create a repository from this template:
 
 ```bash
-gh repo create <org>/<name> --template josunefoOrg/golden-repo
+gh repo create <org>/<name> --template <yourGitHubOrganization>/golden-repo
 ```
 
 Provision the secure baseline:
