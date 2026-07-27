@@ -1,0 +1,19 @@
+.github/workflows/framework-compliance-review.yml
+  s_8e42d3daa5ed9e::t_452e3e4763b6f4 192-194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "db3904b62df3c726ef38d104d94f49372a977479",
+  "prompts": {},
+  "sessions": {
+    "s_8e42d3daa5ed9e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "57201011-0d1a-4ff8-a63e-7c24f1cfcb32",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
