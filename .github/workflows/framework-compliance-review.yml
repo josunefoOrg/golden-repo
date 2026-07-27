@@ -189,7 +189,9 @@ jobs:
             
             const marker = '<!-- framework-compliance-review -->';
             const heading = '## Framework Compliance Review';
-            const body = `${marker}\n${heading}\n\n${reviewContent}`;
+            const reviewedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const note = `\n\n---\n> _Note: Framework Compliance Review generated on ${reviewedAt} UTC._`;
+            const body = `${marker}\n${heading}\n\n${reviewContent}${note}`;
             
             // Find existing comment with marker
             const { data: comments } = await github.rest.issues.listComments({
