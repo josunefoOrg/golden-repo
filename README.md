@@ -35,6 +35,10 @@ Use a GitHub App installation token or another approved short-lived token source
 
 See [docs/architecture.md](docs/architecture.md) for the template architecture, repository layout, provisioning flow, and security baseline.
 
+## Evidence policy and decision records
+
+Beyond isolating approved grounding sources, this template defines an [evidence policy](docs/evidence-policy.md) for how agents and contributors treat captured information: approved guidance is the default but not the only visible evidence, volatile technical claims are re-checked against current official sources, every material claim carries source/version/observation date, and fresh lower-trust evidence may challenge approved guidance but cannot silently override it. Material conflicts stop autonomous action and require human adjudication, which produces or updates an [Architecture Decision Record](docs/adr/). See [docs/adr/0000-adr-template.md](docs/adr/0000-adr-template.md) to start a new record.
+
 ## Workflows
 
 This template includes GitHub Actions workflows that automate testing, security scanning, supply-chain integrity, and repository provisioning. The status checks `test`, `analyze`, and `gitleaks` are required for merge on protected branches.
@@ -60,7 +64,7 @@ New repositories are provisioned through:
 - `tools/provision_repo.py` - command-line provisioning for repository settings, security features, branch protection, and team access.
 - `.github/workflows/provision-new-repo.yml` - self-service GitHub Actions workflow for creating and securing repositories from this template.
 
-The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below.
+The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below. For non-private repositories (public and internal), it also enables GitHub Pages with a placeholder landing page served from the `main` branch `/docs` folder; private repositories skip Pages.
 
 ## Required environment configuration
 

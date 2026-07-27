@@ -1,3 +1,9 @@
+---
+title: Architecture
+layout: default
+nav_order: 10
+---
+
 # golden-repo architecture
 
 golden-repo is the central template and provisioning control point for `josunefoOrg`. It combines:
@@ -75,6 +81,8 @@ Expected responsibilities:
   - Secret scanning.
   - Secret scanning push protection.
   - CodeQL default setup where supported.
+- Enable GitHub Pages with a placeholder landing page for non-private
+  repositories (public and internal); skip Pages for private repositories.
 - Apply team-based access from workflow/script inputs.
 - Use only the token in `GITHUB_TOKEN`; never read or require a standing PAT.
 
@@ -124,6 +132,30 @@ Required controls:
 - Branch deletion disabled.
 - Admins included.
 - Push restricted to the `maintainers` team.
+
+## Evidence and decision records
+
+Beyond isolating approved grounding sources, the template defines an
+[evidence policy](evidence-policy.md) that governs how captured information is
+trusted over time:
+
+- Approved guidance is the default, but historical and lower-trust sources stay
+  visible as emerging evidence.
+- Volatile technical claims (APIs, limits, versions, availability) are re-checked
+  against current official sources, and every material claim carries source,
+  version, and observation date.
+- Fresh, lower-trust evidence may challenge approved guidance but cannot silently
+  override it. A material conflict stops autonomous action and requires human
+  adjudication.
+- Each adjudication produces or updates an [Architecture Decision Record](adr/).
+  The "stop autonomous action" gate is the existing Code Owner review and
+  branch-protection baseline, where the adjudicated decision and its ADR are
+  approved before merge.
+
+This adds a freshness and trust dimension on top of the grounding-source
+isolation controls in the security baseline: isolation decides who may read
+what, while the evidence policy decides how much to trust it and when it is
+stale.
 
 ## SLSA L3 SBOM and signing alignment
 
