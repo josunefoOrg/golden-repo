@@ -38,9 +38,11 @@ from this template.
 | [GitHub App setup](SETUP.md) | The full one-time GitHub App registration and installation steps. |
 | [Workflows](workflows.md) | CI, CodeQL, secret scanning, SBOM, and compliance review workflows. |
 | [Security baseline](security.md) | The security controls enabled and enforced by the template. |
+| [Evidence policy](evidence-policy.md) | How agents treat captured information, evidence freshness, and source conflicts. |
 | [Branch protection](branch-protection.md) | The authoritative `main` protection baseline. |
 | [Architecture](architecture.md) | Template architecture and the provisioning flow. |
 | [Copilot agents](agents.md) | The custom agents shipped with the template. |
+| [Decision records (ADRs)](adr/) | Architecture Decision Records and the ADR template. |
 | [Troubleshooting](troubleshooting.md) | Common provisioning and Pages issues and fixes. |
 
 ## Quick reference

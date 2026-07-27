@@ -1,7 +1,7 @@
 ---
 title: Branch protection
 layout: default
-nav_order: 8
+nav_order: 9
 ---
 
 # Branch protection baseline
