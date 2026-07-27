@@ -80,3 +80,12 @@ BREAKING CHANGE: repository settings now require explicit team slugs.
 7. Keep the branch up to date with the protected base branch.
 
 Pull requests must not bypass required review, signed commits, or security checks.
+
+## Decision records (ADRs)
+
+Write an Architecture Decision Record when a material conflict between sources is adjudicated, or when approved technical guidance is reversed because a capability, API, limit, or version changed. This implements the [evidence policy](docs/evidence-policy.md): a material conflict stops autonomous action and requires human adjudication, and the decision is recorded before merge.
+
+- Copy [docs/adr/0000-adr-template.md](docs/adr/0000-adr-template.md) to `docs/adr/NNNN-short-slug.md`.
+- Record each material claim with its source, version, and observation date.
+- Retire stale decisions by superseding them with a new ADR; never edit an accepted ADR to change its meaning.
+- The Code Owner review and branch-protection baseline are the human gate where the ADR is approved.

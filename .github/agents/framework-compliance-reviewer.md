@@ -138,6 +138,26 @@ Agents must be classified during onboarding. The tier determines mandatory contr
 - **Component isolation** - Isolate components to reduce blast radius
 - **Anomaly monitoring** - Monitor runtime behavior for signs of dependency compromise
 
+### Evidence and Grounding Freshness Policy
+
+Captured or retrieved information is not automatically trustworthy grounding.
+Beyond isolating approved sources, evaluate whether the repository governs
+evidence trust and freshness:
+
+- **Approved-by-default, not approved-only** - Approved grounding guides current
+  decisions; historical and lower-trust sources remain visible as emerging
+  evidence rather than being silently discarded.
+- **Volatile claim re-verification** - Claims about APIs, limits, versions, or
+  availability are re-checked against current official sources at time of use,
+  not assumed from prior capture.
+- **Provenance on material claims** - Every claim a decision depends on carries
+  source, version, and observation date.
+- **Challenge without silent override** - Fresh, lower-trust evidence may
+  challenge approved guidance but cannot silently override it; a material
+  conflict stops autonomous action and escalates to human adjudication.
+- **Adjudication produces an ADR** - Each resolved conflict creates or updates an
+  Architecture Decision Record; stale decisions are superseded, not edited.
+
 ### Shift-Left Requirements
 
 - Secure authoring standards for code and prompts
@@ -152,6 +172,10 @@ Agents must be classified during onboarding. The tier determines mandatory contr
 - Treating agents like chatbots instead of autonomous workloads
 - Relying on prompts instead of platform policy for enforcement
 - Sharing grounding sources for convenience
+- Treating captured information as trusted grounding without vetting
+- Acting on stale approved guidance after a capability, API, or version has changed
+- Letting fresh evidence silently override approved guidance without adjudication
+- Recording material claims without source, version, and observation date
 - Assuming network isolation alone provides security
 - Allowing unrestricted production deployment
 - Ignoring supply chain risks in models, tools, grounding data
@@ -256,6 +280,11 @@ When asked to review a repository, follow this systematic approach:
 - Are content filters enabled? (Control 2, Layer 2)
 - Are prompt shields and groundedness checks configured? (Controls 8, 9)
 - Is there protection against raw data leakage or exfiltration?
+- **Evidence policy (`docs/evidence-policy.md`):** Is there a documented evidence
+  policy covering captured-vs-approved trust, freshness, and conflict handling?
+  If the repository defines one, verify the material claims it depends on carry
+  source, version, and observation date, and that adjudicated conflicts are
+  recorded as ADRs.
 
 ### 5. Supply Chain Security
 
@@ -406,6 +435,8 @@ When reviewing, flag these as fails:
 - **Unsigned artifacts:** No Cosign or equivalent signing for SBOM or build artifacts
 - **Missing SBOM:** No software bill of materials generation for dependencies
 - **Shared grounding sources:** AI Search indexes or storage shared across agents/teams by default
+- **Unvetted captured grounding:** Captured or retrieved content promoted to trusted grounding without vetting, or material claims recorded without source, version, and observation date
+- **Silent override of approved guidance:** Fresh, lower-trust evidence overriding approved guidance without human adjudication and an ADR
 - **No environment separation:** Single environment for dev and production, or no promotion pipeline
 - **Prompt-based controls:** Security or governance enforced via prompt text rather than platform policy
 - **Missing adversarial testing:** No red teaming or prompt injection testing for Medium/High risk agents
@@ -429,6 +460,7 @@ These rules cannot be overridden:
 
 - Never recommend prompt text as a substitute for platform policy enforcement
 - Never approve shared grounding sources across teams or tenants without explicit isolation
+- Never treat captured information as trusted grounding without vetting, and never allow fresh evidence to silently override approved guidance without human adjudication and an ADR
 - Never allow embedded credentials, API keys, or shared secrets in agent identities
 - Always require centralized logging before any agent reaches production (Control 5)
 - Always assign a risk tier before recommending a control set
