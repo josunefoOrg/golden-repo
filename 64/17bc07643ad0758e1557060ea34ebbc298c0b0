@@ -1,0 +1,38 @@
+docs/evidence-policy.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 10
+docs/index.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 53
+docs/SETUP.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 13,23,30-31,78,91,99,101,123,149,153,170,188,218,228,251,262,272,284,293,309
+  s_8e42d3daa5ed9e::t_a757dbb5e1007c 103
+docs/getting-started.md
+  s_8e42d3daa5ed9e::t_68e7ee33cf8991 32-33
+  s_8e42d3daa5ed9e::t_210275d8569a64 29
+docs/branch-protection.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 9,35
+docs/configuration.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 27-28,51
+docs/provisioning.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 52
+README.md
+  s_8e42d3daa5ed9e::t_3b1084dc956ee0 15
+  s_8e42d3daa5ed9e::t_d54289f1c276f1 77,93-94
+docs/architecture.md
+  s_8e42d3daa5ed9e::t_210275d8569a64 9,42,55,76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "6417bc07643ad0758e1557060ea34ebbc298c0b0",
+  "prompts": {},
+  "sessions": {
+    "s_8e42d3daa5ed9e": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "57201011-0d1a-4ff8-a63e-7c24f1cfcb32",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
