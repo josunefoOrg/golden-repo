@@ -63,6 +63,7 @@ New repositories are provisioned through:
 
 - `tools/provision_repo.py` - command-line provisioning for repository settings, security features, branch protection, and team access.
 - `.github/workflows/provision-new-repo.yml` - self-service GitHub Actions workflow for creating and securing repositories from this template.
+- `tools/seed_repo.py` and `.github/workflows/seed-target-repo.yml` - push this repository's structure into an already-created target repository as its initial commit. Use this where repositories can only be created through 1ES StartRight (for example EAG / `mcaps-microsoft`): StartRight creates the empty repo, then the seeder performs the first push. No GitHub App is required; the push uses a `TARGET_REPO_TOKEN` (a fine-grained PAT with `Contents: write` on the target) or an SSH `--target-url`. See [docs/provisioning.md](docs/provisioning.md#seeding-a-startright-created-repository).
 
 The provisioning flow is expected to enable Dependabot alerts and security updates, secret scanning, secret scanning push protection, CodeQL default setup, and the branch protection baseline below. For non-private repositories (public and internal), it also enables GitHub Pages with a placeholder landing page served from the `main` branch `/docs` folder; private repositories skip Pages.
 
@@ -70,7 +71,7 @@ The provisioning flow is expected to enable Dependabot alerts and security updat
 
 The self-service workflow `.github/workflows/provision-new-repo.yml` uses `environment: repo-provisioning` as a manual approval gate before privileged repository provisioning runs. Provisioning is therefore not fully unattended.
 
-IMPORTANT: Create the GitHub Environment and its required reviewers manually in the GitHub UI. Environment protection rules and required reviewers CANNOT be created via API/script and must be configured manually before provisioning is treated as ready.
+Create the GitHub Environment and its required reviewers either manually in the GitHub UI or via the API. Environment protection rules and required reviewers CAN be created via API/script (see `tools/setup_environment.py`); what cannot be scripted is the act of approving a run, which always requires a human reviewer.
 
 Create the environment in the repository that hosts the workflow:
 

@@ -163,7 +163,21 @@ Remove-Item -Path $privateKeyPath
 
 ## 5. Create the `repo-provisioning` GitHub Environment
 
-MANUAL ONE-TIME STEP. This is the approval gate before privileged repository provisioning.
+MANUAL ONE-TIME STEP (approving a run itself always requires a human reviewer),
+but creating the environment and its required-reviewer rule can be scripted with
+`tools/setup_environment.py` instead of the UI steps below.
+
+### `python` alternative (recommended)
+
+```powershell
+$env:GITHUB_TOKEN = "<token-with-admin-on-the-repo>"
+python tools/setup_environment.py `
+  --org <yourGitHubOrganization> `
+  --repo golden-repo `
+  --environment repo-provisioning `
+  --reviewer-team maintainers `
+  --reviewer-team platform-team
+```
 
 ### UI steps
 

@@ -4,8 +4,9 @@
 #    Secret scanning alerts RW, Dependabot alerts RW, and Members R.
 # 2. Install the GitHub App on the josunefoOrg organization.
 # 3. Add org secret PROVISIONER_APP_PRIVATE_KEY and org variable PROVISIONER_APP_ID.
-# 4. Create the repo-provisioning environment with required reviewers. Environment
-#    approval gates cannot be fully scripted and must be configured manually.
+# 4. Create the repo-provisioning environment with required reviewers. This can be
+#    scripted with tools/setup_environment.py; only approving a run itself always
+#    requires a human reviewer.
 
 name: Provision New Repository
 

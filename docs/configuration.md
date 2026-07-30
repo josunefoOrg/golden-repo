@@ -45,8 +45,23 @@ per-repository admin team. Members read-only causes a 403 on team creation.
 The self-service workflow uses `environment: repo-provisioning` as a manual
 approval gate before privileged provisioning runs.
 
-Environment protection rules and required reviewers cannot be created through the
-API and must be configured manually in the GitHub UI:
+Environment protection rules and required reviewers can be created through the
+API, not only manually in the GitHub UI. Use `tools/setup_environment.py` (or the
+`gh` snippet in [GitHub App setup](SETUP.md)):
+
+```bash
+GITHUB_TOKEN=<token-with-admin-on-the-repo> \
+  python tools/setup_environment.py \
+    --org <yourGitHubOrganization> \
+    --repo golden-repo \
+    --environment repo-provisioning \
+    --reviewer-team maintainers \
+    --reviewer-team platform-team
+```
+
+What genuinely cannot be scripted is the act of *approving* a run: that always
+requires a human reviewer to click approve when a protected job triggers.
+Manual UI steps, if preferred:
 
 1. Open repository or organization settings for `<yourGitHubOrganization>/golden-repo`.
 2. Go to Settings, then Environments.
@@ -69,7 +84,7 @@ personal access tokens are not supported by the Copilot CLI. See
 - [ ] `PROVISIONER_APP_ID` organization variable is set.
 - [ ] `PROVISIONER_APP_PRIVATE_KEY` organization secret is set.
 - [ ] The provisioning GitHub App is installed on the organization.
-- [ ] The `repo-provisioning` environment exists with required reviewers.
+- [ ] The `repo-provisioning` environment exists with required reviewers (create with `tools/setup_environment.py` or the GitHub UI).
 - [ ] `golden-repo` is marked as a template repository.
 - [ ] GitHub Advanced Security is enabled where private repositories need it.
 - [ ] Optional: `COPILOT_CLI_TOKEN` is set for compliance review.
