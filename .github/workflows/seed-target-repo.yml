@@ -8,9 +8,12 @@
 #    new repository requires approval. Environment approval gates must be
 #    configured manually.
 #
-# This workflow performs only the "first push": it exports this repository's
-# tracked structure (without git history) and pushes it to the target repository
-# as its initial commit.
+# This workflow overlays this repository's tracked structure onto the target
+# repository as a new commit on top of whatever the target already contains
+# (StartRight-created repos are typically not empty — they may already have a
+# placeholder README and compliance scaffolding such as .github/policies/*.yml).
+# The target's existing history and any files not present in golden-repo are
+# preserved; nothing is force-pushed unless the `force` input is explicitly set.
 
 name: Seed Target Repository
 
@@ -22,17 +25,18 @@ on:
         required: true
         type: string
       target_branch:
-        description: Branch to push on the target repository.
+        description: Branch to clone from / push on the target repository.
         required: true
         default: main
         type: string
       commit_message:
-        description: Commit message for the seeded initial commit.
+        description: Commit message for the overlay commit.
         required: false
-        default: Initial import from golden-repo template
+        default: Import golden-repo template structure
         type: string
       force:
-        description: Force-push (replace an existing seed commit on the target).
+        description: Force-push instead of a normal push. Not needed by default;
+          only use to knowingly rewrite the target branch history.
         required: false
         default: false
         type: boolean

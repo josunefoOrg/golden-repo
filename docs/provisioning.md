@@ -96,22 +96,37 @@ secret setup the workflow requires.
 
 In environments where repositories can only be created through 1ES StartRight
 (for example EAG / the `mcaps-microsoft` organization), StartRight creates the new
-GitHub repository and the golden-repo template is pushed into it as the initial
-commit. StartRight repo creation is performed separately; this repository only
-performs the content push.
+GitHub repository and the golden-repo template is pushed into it afterward.
+StartRight repo creation is performed separately; this repository only performs
+the content push.
 
-- `tools/seed_repo.py`: exports this repository's tracked structure (without git
-  history, via `git archive`) and pushes it to an already-created target
-  repository as its initial commit. Provisioning-only files are excluded by
-  default so the seeded repository does not carry the seeding tooling.
+StartRight-created repositories are commonly **not empty** — they may already
+carry a placeholder `README.md` and mandatory compliance scaffolding such as
+`.github/policies/*.yml`. The seeding tool is designed around this: it clones the
+target repository (preserving its existing history), overlays golden-repo's
+tracked files on top, and commits the result. Files that already exist in the
+target but are not part of golden-repo are left untouched, so StartRight-owned
+content always survives. If the target happens to be empty, the same flow simply
+creates the first commit.
+
+- `tools/seed_repo.py`: clones the target repository, exports this repository's
+  tracked structure (via `git archive`, no history carried over), overlays it onto
+  the clone's working tree without deleting pre-existing target files, commits on
+  top of the target's existing history, and pushes with a normal (fast-forward)
+  push — no force required. Provisioning-only files are excluded by default so the
+  seeded repository does not carry the seeding tooling itself. Re-running the
+  script is safe and idempotent: if the target already matches golden-repo's
+  content, it reports "nothing to commit" and exits without pushing.
 - `.github/workflows/seed-target-repo.yml`: self-service `workflow_dispatch`
   wrapper, gated behind the `repo-provisioning` environment.
 
 The flow is:
 
-1. StartRight creates the empty target repository in the same organization.
-2. This workflow (or `tools/seed_repo.py` locally) pushes the golden-repo
-   structure to the target as the `main` initial commit.
+1. StartRight creates the target repository in the same organization (empty or
+   with initial scaffolding).
+2. This workflow (or `tools/seed_repo.py` locally) overlays the golden-repo
+   structure onto the target's `main` branch as a new commit, preserving
+   whatever StartRight already committed.
 
 No GitHub App is required. The push is authenticated with a token supplied in the
 `TARGET_REPO_TOKEN` environment variable (a fine-grained PAT with `Contents: write`
@@ -144,17 +159,19 @@ TARGET_REPO_TOKEN=<token> \
   python tools/seed_repo.py \
     --target-repo <org>/<name> \
     --target-branch main \
-    --commit-message "Initial import from golden-repo template"
+    --commit-message "Import golden-repo template structure"
 ```
 
 Useful options: `--exclude PATH` (repeatable) and `--exclude-file FILE` to drop
-additional paths, `--no-default-excludes` to keep every tracked file, `--force` to
-replace an existing seed commit, `--source-ref REF` to seed a ref other than
-`HEAD`, and `--dry-run` to print the steps without pushing. Run
-`python tools/seed_repo.py --help` for the full list.
+additional paths, `--no-default-excludes` to keep every tracked file,
+`--source-ref REF` to seed a ref other than `HEAD`, and `--dry-run` to print the
+steps without cloning, committing, or pushing. `--force` is available but should
+not be needed in normal use — the overlay flow never rewrites target history, so
+a plain push is always sufficient unless you are intentionally rewriting the
+target branch. Run `python tools/seed_repo.py --help` for the full list.
 
-If the target's `main` branch is already protected, push to a feature branch
-(`--target-branch <branch>`) and open a pull request instead of pushing to `main`.
+If the target's `main` branch is already protected against direct pushes, push to
+a feature branch (`--target-branch <branch>`) and open a pull request instead.
 
 ## Plan tier limitation
 

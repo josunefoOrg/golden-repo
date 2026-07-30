@@ -1,17 +1,25 @@
 """Seed a target GitHub repository with this repository's structure.
 
-This pushes the golden-repo content (the tracked working tree, without git
-history) into a *separate*, already-created target repository as its initial
-commit. It is the "first push" step in the flow:
+This overlays the golden-repo content (the tracked working tree, without git
+history) onto an *already-created* target repository, as an additional commit on
+top of whatever the target already contains. It is the "first push" step in the
+flow:
 
-    golden-repo (source)  ->  StartRight creates empty repo  ->  seed_repo.py push
+    golden-repo (source)  ->  StartRight creates the repo  ->  seed_repo.py push
 
-StartRight (repo creation) is performed separately/manually. This script only
-performs the content push, so it does not need a GitHub App: it authenticates the
-push with whatever token is provided in the ``TARGET_REPO_TOKEN`` environment
-variable (a fine-grained PAT with Contents: write on the target, or any token the
-org allows), or you can pass a ready-to-use ``--target-url`` (for example an SSH
-URL backed by a deploy key) and no token.
+StartRight (repo creation) is performed separately/manually, and StartRight-
+provisioned repositories are commonly *not* empty: they may already carry
+scaffolding such as a placeholder README or compliance/policy files (for example
+``.github/policies/*.yml``). This script clones the target repository, copies
+golden-repo's tracked files on top of it, and commits normally. It never deletes
+pre-existing target files and never force-pushes by default, so anything
+StartRight (or a prior run) already committed survives.
+
+This script does not need a GitHub App: it authenticates the push with whatever
+token is provided in the ``TARGET_REPO_TOKEN`` environment variable (a
+fine-grained PAT with Contents: write on the target, or any token the org
+allows), or you can pass a ready-to-use ``--target-url`` (for example an SSH URL
+backed by a deploy key) and no token.
 
 The source content is exported with ``git archive`` so only tracked files are
 included and ``.gitignore``/``export-ignore`` rules are honored. Provisioning-only
@@ -24,6 +32,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -34,7 +43,7 @@ from urllib.parse import quote
 DEFAULT_HOST = "github.com"
 DEFAULT_BRANCH = "main"
 DEFAULT_SOURCE_REF = "HEAD"
-DEFAULT_COMMIT_MESSAGE = "Initial import from golden-repo template"
+DEFAULT_COMMIT_MESSAGE = "Import golden-repo template structure"
 DEFAULT_AUTHOR_NAME = "golden-repo-seeder"
 DEFAULT_AUTHOR_EMAIL = "golden-repo-seeder@users.noreply.github.com"
 
@@ -54,8 +63,9 @@ class SeedError(RuntimeError):
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Push this repository's structure into an already-created target "
-            "repository as its initial commit."
+            "Overlay this repository's structure onto an already-created target "
+            "repository as a new commit, preserving any content the target "
+            "already has (for example StartRight compliance scaffolding)."
         )
     )
     target = parser.add_mutually_exclusive_group(required=True)
@@ -66,8 +76,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     target.add_argument(
         "--target-url",
-        help="Fully-formed push URL (for example an SSH URL). Used as-is; no token "
-        "is injected.",
+        help="Fully-formed clone/push URL (for example an SSH URL). Used as-is; "
+        "no token is injected.",
     )
     parser.add_argument(
         "--host",
@@ -77,7 +87,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--target-branch",
         default=DEFAULT_BRANCH,
-        help=f"Branch to push on the target. Default: {DEFAULT_BRANCH}.",
+        help=f"Branch to clone from and push on the target. Default: {DEFAULT_BRANCH}.",
     )
     parser.add_argument(
         "--source-ref",
@@ -87,7 +97,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--commit-message",
         default=DEFAULT_COMMIT_MESSAGE,
-        help="Commit message for the seeded initial commit.",
+        help="Commit message for the overlay commit.",
     )
     parser.add_argument(
         "--exclude",
@@ -117,12 +127,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Force-push (use when the target already has a seed commit to replace).",
+        help=(
+            "Force-push instead of a normal (fast-forward) push. Not needed for "
+            "the default overlay flow; only use it to knowingly rewrite the "
+            "target branch."
+        ),
     )
     parser.add_argument(
         "--username",
         default="x-access-token",
-        help="Username used in the HTTPS push URL. Default: x-access-token.",
+        help="Username used in the HTTPS clone/push URL. Default: x-access-token.",
     )
     parser.add_argument(
         "--dry-run",
@@ -164,7 +178,7 @@ def resolve_excludes(args: argparse.Namespace) -> list[str]:
 
 
 def build_remote_url(args: argparse.Namespace, token: str) -> str:
-    """Return the push URL, injecting the token for HTTPS targets."""
+    """Return the clone/push URL, injecting the token for HTTPS targets."""
     if args.target_url:
         return args.target_url
     if not token:
@@ -187,12 +201,13 @@ def run_git(
     *,
     cwd: Path | None = None,
     dry_run: bool = False,
-) -> None:
+    check: bool = True,
+) -> subprocess.CompletedProcess | None:
     printable = " ".join(args_list)
     if dry_run:
         print(f"[dry-run] {printable}")
-        return
-    subprocess.run(args_list, cwd=cwd, check=True)
+        return None
+    return subprocess.run(args_list, cwd=cwd, check=check)
 
 
 def export_source_tree(source_ref: str, dest: Path, *, dry_run: bool) -> None:
@@ -213,41 +228,73 @@ def export_source_tree(source_ref: str, dest: Path, *, dry_run: bool) -> None:
 
 
 def apply_excludes(root: Path, excludes: list[str], *, dry_run: bool) -> None:
+    """Drop excluded paths from the exported source content (not the target)."""
     for rel in excludes:
         target = root / rel
         if dry_run:
             print(f"[dry-run] exclude {rel}")
             continue
         if target.is_dir():
-            _remove_tree(target)
+            shutil.rmtree(target)
         elif target.exists():
             target.unlink()
 
 
-def _remove_tree(path: Path) -> None:
-    for child in path.iterdir():
-        if child.is_dir():
-            _remove_tree(child)
-        else:
-            child.unlink()
-    path.rmdir()
+def overlay_content(source: Path, target: Path, *, dry_run: bool) -> None:
+    """Copy every file under source into target, overwriting on conflict.
+
+    Files that already exist in target but are absent from source are left
+    untouched. This is what preserves target-only content such as StartRight
+    compliance scaffolding.
+    """
+    if dry_run:
+        print(f"[dry-run] overlay {source} onto {target} (no deletions)")
+        return
+    for src_path in source.rglob("*"):
+        if src_path.is_dir():
+            continue
+        rel = src_path.relative_to(source)
+        dest_path = target / rel
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_path, dest_path)
+
+
+def clone_target(remote_url: str, branch: str, dest: Path, *, dry_run: bool) -> None:
+    if dry_run:
+        print(f"[dry-run] git clone --branch {branch} {redact_url(remote_url)} {dest}")
+        return
+    result = subprocess.run(
+        ["git", "clone", "--branch", branch, "--single-branch", remote_url, str(dest)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return
+    # A brand-new repository with zero commits has no branch to clone; clone the
+    # (empty) default state instead and let the first commit create the branch.
+    if "Remote branch" in result.stderr and "not found" in result.stderr:
+        subprocess.run(["git", "clone", remote_url, str(dest)], check=True)
+        return
+    raise SeedError(f"git clone failed: {result.stderr.strip()}")
 
 
 def seed(args: argparse.Namespace, token: str) -> None:
     excludes = resolve_excludes(args)
     remote_url = build_remote_url(args, token)
-    print(f"Seeding {redact_url(remote_url)} (branch {args.target_branch})")
+    print(
+        f"Seeding {redact_url(remote_url)} (branch {args.target_branch}) "
+        "by overlaying onto the target's existing content"
+    )
     if excludes:
-        print("Excluding: " + ", ".join(excludes))
+        print("Excluding from golden-repo content: " + ", ".join(excludes))
 
     if args.dry_run:
-        export_source_tree(args.source_ref, Path("<tmp>"), dry_run=True)
-        apply_excludes(Path("<tmp>"), excludes, dry_run=True)
-        run_git(["git", "init"], dry_run=True)
+        clone_target(remote_url, args.target_branch, Path("<tmp>/target"), dry_run=True)
+        export_source_tree(args.source_ref, Path("<tmp>/source"), dry_run=True)
+        apply_excludes(Path("<tmp>/source"), excludes, dry_run=True)
+        overlay_content(Path("<tmp>/source"), Path("<tmp>/target"), dry_run=True)
         run_git(["git", "add", "-A"], dry_run=True)
-        run_git(
-            ["git", "commit", "-m", args.commit_message], dry_run=True
-        )
+        run_git(["git", "commit", "-m", args.commit_message], dry_run=True)
         push = ["git", "push", redact_url(remote_url), f"HEAD:{args.target_branch}"]
         if args.force:
             push.insert(2, "--force")
@@ -256,10 +303,14 @@ def seed(args: argparse.Namespace, token: str) -> None:
         return
 
     with tempfile.TemporaryDirectory(prefix="golden-seed-") as tmp:
-        content = Path(tmp) / "content"
-        content.mkdir(parents=True)
-        export_source_tree(args.source_ref, content, dry_run=False)
-        apply_excludes(content, excludes, dry_run=False)
+        target_dir = Path(tmp) / "target"
+        source_dir = Path(tmp) / "source"
+        source_dir.mkdir(parents=True)
+
+        clone_target(remote_url, args.target_branch, target_dir, dry_run=False)
+        export_source_tree(args.source_ref, source_dir, dry_run=False)
+        apply_excludes(source_dir, excludes, dry_run=False)
+        overlay_content(source_dir, target_dir, dry_run=False)
 
         git_id = [
             "-c",
@@ -267,20 +318,30 @@ def seed(args: argparse.Namespace, token: str) -> None:
             "-c",
             f"user.email={args.author_email}",
         ]
-        run_git(["git", "init", "-q", "-b", args.target_branch], cwd=content)
-        run_git(["git", *git_id, "add", "-A"], cwd=content)
+        run_git(["git", *git_id, "add", "-A"], cwd=target_dir)
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=target_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        if not status.stdout.strip():
+            print("Target already matches golden-repo content; nothing to commit.")
+            return
+
         run_git(
             ["git", *git_id, "commit", "-q", "-m", args.commit_message],
-            cwd=content,
+            cwd=target_dir,
         )
         push = ["git", "push"]
         if args.force:
             push.append("--force")
-        push.extend([remote_url, f"HEAD:{args.target_branch}"])
-        run_git(push, cwd=content)
+        push.extend(["origin", f"HEAD:{args.target_branch}"])
+        run_git(push, cwd=target_dir)
 
     print(
-        f"Pushed initial commit to {args.target_repo or args.target_url} "
+        f"Pushed overlay commit to {args.target_repo or args.target_url} "
         f"({args.target_branch})."
     )
 
