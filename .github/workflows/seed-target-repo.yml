@@ -1,0 +1,92 @@
+# MANUAL ONE-TIME SETUP:
+# 1. StartRight is used (manually) to create the empty target repository in the
+#    same organization (for example mcaps-microsoft).
+# 2. Add a repository (or organization) secret TARGET_REPO_TOKEN: a fine-grained
+#    PAT with Contents: write on the target repository. No GitHub App is used.
+#    Alternatively, seed via SSH by adapting the script's --target-url input.
+# 3. Create the repo-provisioning environment with required reviewers so seeding a
+#    new repository requires approval. Environment approval gates must be
+#    configured manually.
+#
+# This workflow performs only the "first push": it exports this repository's
+# tracked structure (without git history) and pushes it to the target repository
+# as its initial commit.
+
+name: Seed Target Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: Target repository as 'owner/name' (created via StartRight).
+        required: true
+        type: string
+      target_branch:
+        description: Branch to push on the target repository.
+        required: true
+        default: main
+        type: string
+      commit_message:
+        description: Commit message for the seeded initial commit.
+        required: false
+        default: Initial import from golden-repo template
+        type: string
+      force:
+        description: Force-push (replace an existing seed commit on the target).
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-target-repo-${{ inputs.target_repo }}
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: seed
+    runs-on: ubuntu-latest
+    environment: repo-provisioning
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Seed target repository
+        env:
+          TARGET_REPO_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
+          INPUT_TARGET_REPO: ${{ inputs.target_repo }}
+          INPUT_TARGET_BRANCH: ${{ inputs.target_branch }}
+          INPUT_COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          INPUT_FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            --target-repo "$INPUT_TARGET_REPO"
+            --target-branch "$INPUT_TARGET_BRANCH"
+            --commit-message "$INPUT_COMMIT_MESSAGE"
+          )
+
+          if [ "$INPUT_FORCE" = "true" ]; then
+            args+=(--force)
+          fi
+
+          python tools/seed_repo.py "${args[@]}"
+
+      - name: Write result to summary
+        env:
+          INPUT_TARGET_REPO: ${{ inputs.target_repo }}
+          INPUT_TARGET_BRANCH: ${{ inputs.target_branch }}
+        run: |
+          echo "## Seeded repository" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed golden-repo structure to $INPUT_TARGET_REPO ($INPUT_TARGET_BRANCH)." >> "$GITHUB_STEP_SUMMARY"

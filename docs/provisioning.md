@@ -92,6 +92,51 @@ repository creation:
 See [Configuration](configuration.md) for the one-time environment, variable, and
 secret setup the workflow requires.
 
+## Seeding a StartRight-created repository
+
+In environments where repositories can only be created through 1ES StartRight
+(for example EAG / the `mcaps-microsoft` organization), StartRight creates the new
+GitHub repository and the golden-repo template is pushed into it as the initial
+commit. StartRight repo creation is performed separately; this repository only
+performs the content push.
+
+- `tools/seed_repo.py`: exports this repository's tracked structure (without git
+  history, via `git archive`) and pushes it to an already-created target
+  repository as its initial commit. Provisioning-only files are excluded by
+  default so the seeded repository does not carry the seeding tooling.
+- `.github/workflows/seed-target-repo.yml`: self-service `workflow_dispatch`
+  wrapper, gated behind the `repo-provisioning` environment.
+
+The flow is:
+
+1. StartRight creates the empty target repository in the same organization.
+2. This workflow (or `tools/seed_repo.py` locally) pushes the golden-repo
+   structure to the target as the `main` initial commit.
+
+No GitHub App is required. The push is authenticated with a token supplied in the
+`TARGET_REPO_TOKEN` environment variable (a fine-grained PAT with `Contents: write`
+on the target repository), or by passing a ready-to-use `--target-url` such as an
+SSH URL backed by a deploy key.
+
+### Command-line seeding
+
+```bash
+TARGET_REPO_TOKEN=<token> \
+  python tools/seed_repo.py \
+    --target-repo <org>/<name> \
+    --target-branch main \
+    --commit-message "Initial import from golden-repo template"
+```
+
+Useful options: `--exclude PATH` (repeatable) and `--exclude-file FILE` to drop
+additional paths, `--no-default-excludes` to keep every tracked file, `--force` to
+replace an existing seed commit, `--source-ref REF` to seed a ref other than
+`HEAD`, and `--dry-run` to print the steps without pushing. Run
+`python tools/seed_repo.py --help` for the full list.
+
+If the target's `main` branch is already protected, push to a feature branch
+(`--target-branch <branch>`) and open a pull request instead of pushing to `main`.
+
 ## Plan tier limitation
 
 Branch protection on private repositories requires a paid GitHub plan (Team or
