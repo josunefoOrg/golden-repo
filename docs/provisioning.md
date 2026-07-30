@@ -118,6 +118,25 @@ No GitHub App is required. The push is authenticated with a token supplied in th
 on the target repository), or by passing a ready-to-use `--target-url` such as an
 SSH URL backed by a deploy key.
 
+### One-time setup for the seeding workflow
+
+Two setup steps gate `.github/workflows/seed-target-repo.yml`:
+
+1. **The `repo-provisioning` environment** must exist on this repository (it is
+   shared with `provision-new-repo.yml`). Create/update it with
+   `tools/setup_environment.py` (see [Configuration](configuration.md)) rather
+   than the UI; this step is fully automatable.
+2. **The `TARGET_REPO_TOKEN` secret** must be set once the target repository
+   exists. Minting the credential (a fine-grained PAT scoped to `Contents: write`
+   on that specific repository, or an org/SSH deploy key) requires a human with
+   the appropriate GitHub permissions and cannot be scripted end-to-end, because
+   the token does not exist until an authorized person creates it. Storing the
+   resulting value as a secret is scriptable:
+
+   ```bash
+   gh secret set TARGET_REPO_TOKEN --repo <org>/golden-repo --body "<token-value>"
+   ```
+
 ### Command-line seeding
 
 ```bash

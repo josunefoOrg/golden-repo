@@ -71,7 +71,7 @@ The provisioning flow is expected to enable Dependabot alerts and security updat
 
 The self-service workflow `.github/workflows/provision-new-repo.yml` uses `environment: repo-provisioning` as a manual approval gate before privileged repository provisioning runs. Provisioning is therefore not fully unattended.
 
-IMPORTANT: Create the GitHub Environment and its required reviewers manually in the GitHub UI. Environment protection rules and required reviewers CANNOT be created via API/script and must be configured manually before provisioning is treated as ready.
+Create the GitHub Environment and its required reviewers either manually in the GitHub UI or via the API. Environment protection rules and required reviewers CAN be created via API/script (see `tools/setup_environment.py`); what cannot be scripted is the act of approving a run, which always requires a human reviewer.
 
 Create the environment in the repository that hosts the workflow:
 
