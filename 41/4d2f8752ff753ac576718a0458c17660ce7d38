@@ -1,0 +1,32 @@
+docs/configuration.md
+  s_a6114a34aecc3c::t_55775d70a50c30 48-64
+  s_a6114a34aecc3c::t_fbd788d9f89e0e 87
+.github/workflows/provision-new-repo.yml
+  s_a6114a34aecc3c::t_84565ad785d472 7-9
+README.md
+  s_a6114a34aecc3c::t_0dc5c65d9b1d55 74
+docs/SETUP.md
+  s_a6114a34aecc3c::t_49258d4feffb41 166-180
+tests/test_setup_environment.py
+  s_a6114a34aecc3c::t_e0d8bacea9e111 1-154
+tools/setup_environment.py
+  s_a6114a34aecc3c::t_c0480d73ab1ba1 1-223
+docs/provisioning.md
+  s_a6114a34aecc3c::t_011fecacd4db4e 121-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "414d2f8752ff753ac576718a0458c17660ce7d38",
+  "prompts": {},
+  "sessions": {
+    "s_a6114a34aecc3c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d1cc9cca-6c94-4153-9520-374b663291d8",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
