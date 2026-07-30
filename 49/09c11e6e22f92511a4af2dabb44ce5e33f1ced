@@ -1,0 +1,26 @@
+tests/test_seed_repo.py
+  s_a6114a34aecc3c::t_331b39e7bcaa53 148-344
+docs/provisioning.md
+  s_a6114a34aecc3c::t_2761b5df44734f 99-119,125-129,162,166-174
+tools/seed_repo.py
+  s_a6114a34aecc3c::t_d04bf493f0a410 3-22,35,46,66-68,79-80,90,100,130-134,139,181,204-205,209-210,231,238,243-278,284-287,289,292-295,297,306-313,321-332,335,340-341,344
+.github/workflows/seed-target-repo.yml
+  s_a6114a34aecc3c::t_42e305cc8cb1c3 28,33,35,38-39
+  s_a6114a34aecc3c::t_fdf051908d8cfb 11-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "4909c11e6e22f92511a4af2dabb44ce5e33f1ced",
+  "prompts": {},
+  "sessions": {
+    "s_a6114a34aecc3c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d1cc9cca-6c94-4153-9520-374b663291d8",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
