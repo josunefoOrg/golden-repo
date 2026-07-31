@@ -1,0 +1,28 @@
+docs/security-benchmarking.md
+  s_a6114a34aecc3c::t_7afbd05b5c47ed 4
+  s_a6114a34aecc3c::t_15de866b7831f7 1-3,5-76
+docs/index.md
+  s_a6114a34aecc3c::t_ba6bc3896ee679 45
+docs/workflows.md
+  s_a6114a34aecc3c::t_4ecd5a10eda909 55-64
+README.md
+  s_a6114a34aecc3c::t_13e2701efa0ba3 42-45
+.github/workflows/agent-security-benchmark.yml
+  s_a6114a34aecc3c::t_6d53c87a7cfbdc 1-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "6604420282573eb38c220917a254e3321687fce5",
+  "prompts": {},
+  "sessions": {
+    "s_a6114a34aecc3c": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d1cc9cca-6c94-4153-9520-374b663291d8",
+        "model": "claude-opus-4.8"
+      },
+      "human_author": "Jordi Sune <jordi.sune@microsoft.com>"
+    }
+  }
+}
