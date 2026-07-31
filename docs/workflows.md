@@ -52,6 +52,16 @@ already carry the label; remove the label to force a re-review. It requires an
 organization-level Actions secret `COPILOT_CLI_TOKEN` and consumes Copilot usage
 quota.
 
+## Agent security benchmark (optional)
+
+`.github/workflows/agent-security-benchmark.yml` is an opt-in, manual-dispatch
+workflow that benchmarks a provisioned repository's agent against security
+tasks using [ACES](https://github.com/microsoft/ACESEvals) (Agent Capability
+Evaluation Suite). It is not part of required CI, does not gate merges, and
+requires the repository to author its own eval task configs and configure model
+provider credentials before use. See
+[Security benchmarking](security-benchmarking.md) for setup.
+
 ## Provision new repository
 
 `.github/workflows/provision-new-repo.yml` is the self-service workflow for

@@ -42,6 +42,7 @@ from this template.
 | [Branch protection](branch-protection.md) | The authoritative `main` protection baseline. |
 | [Architecture](architecture.md) | Template architecture and the provisioning flow. |
 | [Copilot agents](agents.md) | The custom agents shipped with the template. |
+| [Security benchmarking](security-benchmarking.md) | Optional ACES-based benchmarking of a provisioned repo's agent against security tasks. |
 | [Decision records (ADRs)](adr/) | Architecture Decision Records and the ADR template. |
 | [Troubleshooting](troubleshooting.md) | Common provisioning and Pages issues and fixes. |
 
