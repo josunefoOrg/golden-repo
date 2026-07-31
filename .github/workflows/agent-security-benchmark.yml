@@ -1,0 +1,126 @@
+# Agent Security Benchmark Workflow (OPTIONAL)
+#
+# This workflow runs security-capability benchmarks against an agent built from
+# this template using ACES (Agent Capability Evaluation Suite), Microsoft's
+# open-source benchmarking suite for AI security agents (internal codename
+# SABER): https://github.com/microsoft/ACESEvals
+#
+# ACES loads YAML task definitions and produces inspect_ai Task objects; Docker
+# sandboxes, tool execution, scoring, and the agent loop are handled by
+# inspect_ai (https://inspect.ai-safety-institute.org.uk/). This workflow is a
+# thin wrapper: `inspect eval <task-path> --model <model> -T agent=<agent>`.
+#
+# THIS IS DISABLED BY DEFAULT AND OPT-IN:
+# - It only runs on manual dispatch. It is not part of required CI/status
+#   checks and does not gate merges.
+# - It is a scaffold: the provisioned repository must author its own eval task
+#   configs (see docs/security-benchmarking.md) describing the scenarios to run
+#   against its agent. `evals/` is the default expected location.
+#
+# REQUIREMENTS (must be configured before use):
+# - Secrets: AZUREAI_OPENAI_API_KEY, AZUREAI_OPENAI_BASE_URL,
+#   AZUREAI_OPENAI_API_VERSION (or equivalent for the model provider used).
+# - Docker must be available on the runner (ubuntu-latest ships Docker).
+# - At least one eval task config under the `eval_path` input.
+#
+# See docs/security-benchmarking.md for full setup and authoring guidance.
+
+name: Agent Security Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      eval_path:
+        description: Path to the ACES/inspect_ai eval task to run.
+        required: true
+        default: evals/
+        type: string
+      model:
+        description: Model identifier passed to `inspect eval --model`.
+        required: true
+        default: azure/gpt-4.1
+        type: string
+      agent:
+        description: Agent solver to benchmark (passed as -T agent=<value>).
+        required: false
+        default: react
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-security-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preflight - verify eval path exists
+        run: |
+          if [ ! -e "${{ inputs.eval_path }}" ]; then
+            echo "ERROR: eval_path '${{ inputs.eval_path }}' does not exist."
+            echo "Author ACES/inspect_ai task configs before running this workflow."
+            echo "See docs/security-benchmarking.md for guidance."
+            exit 1
+          fi
+
+      - name: Preflight - verify model credentials are set
+        env:
+          AZUREAI_OPENAI_API_KEY: ${{ secrets.AZUREAI_OPENAI_API_KEY }}
+        run: |
+          if [ -z "$AZUREAI_OPENAI_API_KEY" ]; then
+            echo "ERROR: AZUREAI_OPENAI_API_KEY secret is not configured."
+            echo "Configure model provider credentials as repository or org secrets."
+            echo "See docs/security-benchmarking.md for the full list of required secrets."
+            exit 1
+          fi
+          echo "Model credentials are configured."
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install ACES (saber) and inspect_ai
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          uv venv
+          uv pip install "git+https://github.com/microsoft/ACES.git@main" inspect-ai
+
+      - name: Run security benchmark
+        env:
+          AZUREAI_OPENAI_API_KEY: ${{ secrets.AZUREAI_OPENAI_API_KEY }}
+          AZUREAI_OPENAI_BASE_URL: ${{ secrets.AZUREAI_OPENAI_BASE_URL }}
+          AZUREAI_OPENAI_API_VERSION: ${{ secrets.AZUREAI_OPENAI_API_VERSION }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          source .venv/bin/activate
+          inspect eval "${{ inputs.eval_path }}" \
+            --model "${{ inputs.model }}" \
+            -T agent="${{ inputs.agent }}" \
+            --log-dir benchmark-logs
+
+      - name: Upload benchmark logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-security-benchmark-logs
+          path: benchmark-logs
+          if-no-files-found: ignore
+
+      - name: Write result to summary
+        if: always()
+        run: |
+          echo "## Agent Security Benchmark" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ran \`${{ inputs.eval_path }}\` with model \`${{ inputs.model }}\` and agent \`${{ inputs.agent }}\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "See the uploaded \`agent-security-benchmark-logs\` artifact for full inspect_ai results." >> "$GITHUB_STEP_SUMMARY"

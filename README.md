@@ -39,6 +39,10 @@ See [docs/architecture.md](docs/architecture.md) for the template architecture, 
 
 Beyond isolating approved grounding sources, this template defines an [evidence policy](docs/evidence-policy.md) for how agents and contributors treat captured information: approved guidance is the default but not the only visible evidence, volatile technical claims are re-checked against current official sources, every material claim carries source/version/observation date, and fresh lower-trust evidence may challenge approved guidance but cannot silently override it. Material conflicts stop autonomous action and require human adjudication, which produces or updates an [Architecture Decision Record](docs/adr/). See [docs/adr/0000-adr-template.md](docs/adr/0000-adr-template.md) to start a new record.
 
+## Security benchmarking (optional)
+
+Beyond the [framework compliance review](docs/workflows.md#framework-compliance-review), provisioned repositories can optionally benchmark their agent's security capability using [ACES](https://github.com/microsoft/ACESEvals) (Agent Capability Evaluation Suite). This is opt-in, manual-dispatch tooling — see [docs/security-benchmarking.md](docs/security-benchmarking.md).
+
 ## Workflows
 
 This template includes GitHub Actions workflows that automate testing, security scanning, supply-chain integrity, and repository provisioning. The status checks `test`, `analyze`, and `gitleaks` are required for merge on protected branches.
